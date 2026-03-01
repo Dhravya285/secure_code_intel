@@ -1,0 +1,1055 @@
+[
+  {
+    "type": "SQL Injection",
+    "line": 24,
+    "code": "cursor.execute(\"SELECT * FROM users WHERE id=\" + user_id)",
+    "details": {
+      "function_called": "execute",
+      "has_sql_keyword": true,
+      "uses_concat": true,
+      "uses_user_input": false
+    },
+    "file": "data\\vulnerable\\admin_panel.py",
+    "features": {
+      "has_sql_keyword": 1,
+      "uses_concat": 1,
+      "uses_user_input": 0,
+      "dangerous_function": 1
+    },
+    "feature_signal": 0.45,
+    "base_severity": 0.9,
+    "static_risk_score": 0.72
+  },
+  {
+    "type": "Command Injection",
+    "line": 29,
+    "code": "os.system(\"sudo \" + cmd)",
+    "details": {
+      "function_called": "os.system",
+      "uses_concat": true,
+      "uses_user_input": false
+    },
+    "file": "data\\vulnerable\\admin_panel.py",
+    "features": {
+      "uses_os_subprocess": 1,
+      "uses_concat": 1,
+      "uses_user_input": 0,
+      "dangerous_function": 1
+    },
+    "feature_signal": 0.45,
+    "base_severity": 0.95,
+    "static_risk_score": 0.75
+  },
+  {
+    "type": "Hardcoded Credentials",
+    "line": 14,
+    "code": "password   = \"super_admin_pass_2024\"",
+    "details": {
+      "variable_name": "password",
+      "credential_type": "password",
+      "value_length": 21
+    },
+    "file": "data\\vulnerable\\admin_panel.py",
+    "features": {
+      "is_sensitive_varname": 1,
+      "is_string_literal": 1,
+      "long_secret": 1,
+      "dangerous_function": 0
+    },
+    "feature_signal": 0.2,
+    "base_severity": 0.75,
+    "static_risk_score": 0.53
+  },
+  {
+    "type": "Hardcoded Credentials",
+    "line": 15,
+    "code": "api_key    = \"sk-admin-key-xyz987abc\"",
+    "details": {
+      "variable_name": "api_key",
+      "credential_type": "api_key",
+      "value_length": 22
+    },
+    "file": "data\\vulnerable\\admin_panel.py",
+    "features": {
+      "is_sensitive_varname": 1,
+      "is_string_literal": 1,
+      "long_secret": 1,
+      "dangerous_function": 0
+    },
+    "feature_signal": 0.2,
+    "base_severity": 0.75,
+    "static_risk_score": 0.53
+  },
+  {
+    "type": "Path Traversal",
+    "line": 33,
+    "code": "return open(\"logs/\" + log_name).read()",
+    "details": {
+      "function_called": "open",
+      "uses_concat": true,
+      "uses_user_input": false
+    },
+    "file": "data\\vulnerable\\admin_panel.py",
+    "features": {
+      "uses_file_open": 1,
+      "uses_concat": 1,
+      "uses_user_input": 0,
+      "dangerous_function": 1
+    },
+    "feature_signal": 0.45,
+    "base_severity": 0.85,
+    "static_risk_score": 0.69
+  },
+  {
+    "type": "Insecure Deserialization",
+    "line": 37,
+    "code": "return pickle.loads(session_data)",
+    "details": {
+      "function_called": "pickle.loads",
+      "module": "pickle",
+      "uses_user_input": false
+    },
+    "file": "data\\vulnerable\\admin_panel.py",
+    "features": {
+      "uses_pickle_yaml": 1,
+      "uses_user_input": 0,
+      "dangerous_function": 1,
+      "uses_concat": 0
+    },
+    "feature_signal": 0.25,
+    "base_severity": 0.92,
+    "static_risk_score": 0.652
+  },
+  {
+    "type": "SSRF",
+    "line": 45,
+    "code": "return requests.get(\"http://internal.admin/\" + resource_url).text",
+    "details": {
+      "function_called": "requests.get",
+      "uses_concat": true,
+      "uses_user_input": false
+    },
+    "file": "data\\vulnerable\\admin_panel.py",
+    "features": {
+      "uses_http_call": 1,
+      "uses_concat": 1,
+      "uses_user_input": 0,
+      "dangerous_function": 1
+    },
+    "feature_signal": 0.45,
+    "base_severity": 0.88,
+    "static_risk_score": 0.708
+  },
+  {
+    "type": "Weak Cryptography",
+    "line": 41,
+    "code": "return hashlib.md5(pwd.encode()).hexdigest()",
+    "details": {
+      "function_called": "hashlib.md5",
+      "algorithm": "md5"
+    },
+    "file": "data\\vulnerable\\admin_panel.py",
+    "features": {
+      "uses_weak_algorithm": 1,
+      "dangerous_function": 1,
+      "uses_concat": 0,
+      "uses_user_input": 0
+    },
+    "feature_signal": 0.2,
+    "base_severity": 0.7,
+    "static_risk_score": 0.5
+  },
+  {
+    "type": "Debug Mode",
+    "line": 18,
+    "code": "DEBUG = True",
+    "details": {
+      "pattern": "DEBUG = True assignment"
+    },
+    "file": "data\\vulnerable\\admin_panel.py",
+    "features": {
+      "debug_enabled": 1,
+      "dangerous_function": 0,
+      "uses_concat": 0,
+      "uses_user_input": 0
+    },
+    "feature_signal": 0.1,
+    "base_severity": 0.6,
+    "static_risk_score": 0.4
+  },
+  {
+    "type": "Debug Mode",
+    "line": 50,
+    "code": "app.run(debug=True)",
+    "details": {
+      "pattern": "debug=True in function call"
+    },
+    "file": "data\\vulnerable\\admin_panel.py",
+    "features": {
+      "debug_enabled": 1,
+      "dangerous_function": 0,
+      "uses_concat": 0,
+      "uses_user_input": 0
+    },
+    "feature_signal": 0.1,
+    "base_severity": 0.6,
+    "static_risk_score": 0.4
+  },
+  {
+    "type": "Command Injection",
+    "line": 4,
+    "code": "os.system(\"ping -c 1 \" + host)",
+    "details": {
+      "function_called": "os.system",
+      "uses_concat": true,
+      "uses_user_input": false
+    },
+    "file": "data\\vulnerable\\api.py",
+    "features": {
+      "uses_os_subprocess": 1,
+      "uses_concat": 1,
+      "uses_user_input": 0,
+      "dangerous_function": 1
+    },
+    "feature_signal": 0.45,
+    "base_severity": 0.95,
+    "static_risk_score": 0.75
+  },
+  {
+    "type": "Command Injection",
+    "line": 7,
+    "code": "os.system(\"cat \" + path)",
+    "details": {
+      "function_called": "os.system",
+      "uses_concat": true,
+      "uses_user_input": false
+    },
+    "file": "data\\vulnerable\\api.py",
+    "features": {
+      "uses_os_subprocess": 1,
+      "uses_concat": 1,
+      "uses_user_input": 0,
+      "dangerous_function": 1
+    },
+    "feature_signal": 0.45,
+    "base_severity": 0.95,
+    "static_risk_score": 0.75
+  },
+  {
+    "type": "SQL Injection",
+    "line": 16,
+    "code": "cursor.execute(\"SELECT * FROM products WHERE id=\" + product_id)",
+    "details": {
+      "function_called": "execute",
+      "has_sql_keyword": true,
+      "uses_concat": true,
+      "uses_user_input": false
+    },
+    "file": "data\\vulnerable\\api_server.py",
+    "features": {
+      "has_sql_keyword": 1,
+      "uses_concat": 1,
+      "uses_user_input": 0,
+      "dangerous_function": 1
+    },
+    "feature_signal": 0.45,
+    "base_severity": 0.9,
+    "static_risk_score": 0.72
+  },
+  {
+    "type": "Command Injection",
+    "line": 29,
+    "code": "os.system(\"ping -c 4 \" + host)",
+    "details": {
+      "function_called": "os.system",
+      "uses_concat": true,
+      "uses_user_input": false
+    },
+    "file": "data\\vulnerable\\api_server.py",
+    "features": {
+      "uses_os_subprocess": 1,
+      "uses_concat": 1,
+      "uses_user_input": 0,
+      "dangerous_function": 1
+    },
+    "feature_signal": 0.45,
+    "base_severity": 0.95,
+    "static_risk_score": 0.75
+  },
+  {
+    "type": "Debug Mode",
+    "line": 10,
+    "code": "DEBUG = True",
+    "details": {
+      "pattern": "DEBUG = True assignment"
+    },
+    "file": "data\\vulnerable\\api_server.py",
+    "features": {
+      "debug_enabled": 1,
+      "dangerous_function": 0,
+      "uses_concat": 0,
+      "uses_user_input": 0
+    },
+    "feature_signal": 0.1,
+    "base_severity": 0.6,
+    "static_risk_score": 0.4
+  },
+  {
+    "type": "Debug Mode",
+    "line": 34,
+    "code": "app.run(debug=True, host=\"0.0.0.0\")",
+    "details": {
+      "pattern": "debug=True in function call"
+    },
+    "file": "data\\vulnerable\\api_server.py",
+    "features": {
+      "debug_enabled": 1,
+      "dangerous_function": 0,
+      "uses_concat": 0,
+      "uses_user_input": 0
+    },
+    "feature_signal": 0.1,
+    "base_severity": 0.6,
+    "static_risk_score": 0.4
+  },
+  {
+    "type": "SQL Injection",
+    "line": 13,
+    "code": "cursor.execute(\"SELECT * FROM users WHERE id=\" + user_id)",
+    "details": {
+      "function_called": "execute",
+      "has_sql_keyword": true,
+      "uses_concat": true,
+      "uses_user_input": false
+    },
+    "file": "data\\vulnerable\\auth.py",
+    "features": {
+      "has_sql_keyword": 1,
+      "uses_concat": 1,
+      "uses_user_input": 0,
+      "dangerous_function": 1
+    },
+    "feature_signal": 0.45,
+    "base_severity": 0.9,
+    "static_risk_score": 0.72
+  },
+  {
+    "type": "Hardcoded Credentials",
+    "line": 8,
+    "code": "password    = \"admin_master_pass\"",
+    "details": {
+      "variable_name": "password",
+      "credential_type": "password",
+      "value_length": 17
+    },
+    "file": "data\\vulnerable\\auth_service.py",
+    "features": {
+      "is_sensitive_varname": 1,
+      "is_string_literal": 1,
+      "long_secret": 1,
+      "dangerous_function": 0
+    },
+    "feature_signal": 0.2,
+    "base_severity": 0.75,
+    "static_risk_score": 0.53
+  },
+  {
+    "type": "Hardcoded Credentials",
+    "line": 9,
+    "code": "auth_token  = \"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\"",
+    "details": {
+      "variable_name": "auth_token",
+      "credential_type": "auth_token",
+      "value_length": 43
+    },
+    "file": "data\\vulnerable\\auth_service.py",
+    "features": {
+      "is_sensitive_varname": 1,
+      "is_string_literal": 1,
+      "long_secret": 1,
+      "dangerous_function": 0
+    },
+    "feature_signal": 0.2,
+    "base_severity": 0.75,
+    "static_risk_score": 0.53
+  },
+  {
+    "type": "Hardcoded Credentials",
+    "line": 10,
+    "code": "private_key = \"-----BEGIN RSA PRIVATE KEY----- MIIEowIBAAKCAQEA\"",
+    "details": {
+      "variable_name": "private_key",
+      "credential_type": "private_key",
+      "value_length": 48
+    },
+    "file": "data\\vulnerable\\auth_service.py",
+    "features": {
+      "is_sensitive_varname": 1,
+      "is_string_literal": 1,
+      "long_secret": 1,
+      "dangerous_function": 0
+    },
+    "feature_signal": 0.2,
+    "base_severity": 0.75,
+    "static_risk_score": 0.53
+  },
+  {
+    "type": "SSRF",
+    "line": 30,
+    "code": "response = requests.get(\"http://sso.internal/\" + sso_endpoint)",
+    "details": {
+      "function_called": "requests.get",
+      "uses_concat": true,
+      "uses_user_input": false
+    },
+    "file": "data\\vulnerable\\auth_service.py",
+    "features": {
+      "uses_http_call": 1,
+      "uses_concat": 1,
+      "uses_user_input": 0,
+      "dangerous_function": 1
+    },
+    "feature_signal": 0.45,
+    "base_severity": 0.88,
+    "static_risk_score": 0.708
+  },
+  {
+    "type": "SSRF",
+    "line": 36,
+    "code": "return requests.get(f\"http://user-service.internal/lookup/{user_ref}\").json()",
+    "details": {
+      "function_called": "requests.get",
+      "uses_concat": true,
+      "uses_user_input": false
+    },
+    "file": "data\\vulnerable\\auth_service.py",
+    "features": {
+      "uses_http_call": 1,
+      "uses_concat": 1,
+      "uses_user_input": 0,
+      "dangerous_function": 1
+    },
+    "feature_signal": 0.45,
+    "base_severity": 0.88,
+    "static_risk_score": 0.708
+  },
+  {
+    "type": "Weak Cryptography",
+    "line": 22,
+    "code": "return hashlib.md5(raw_password.encode()).hexdigest()",
+    "details": {
+      "function_called": "hashlib.md5",
+      "algorithm": "md5"
+    },
+    "file": "data\\vulnerable\\auth_service.py",
+    "features": {
+      "uses_weak_algorithm": 1,
+      "dangerous_function": 1,
+      "uses_concat": 0,
+      "uses_user_input": 0
+    },
+    "feature_signal": 0.2,
+    "base_severity": 0.7,
+    "static_risk_score": 0.5
+  },
+  {
+    "type": "Weak Cryptography",
+    "line": 26,
+    "code": "return hashlib.sha1(token.encode()).hexdigest()",
+    "details": {
+      "function_called": "hashlib.sha1",
+      "algorithm": "sha1"
+    },
+    "file": "data\\vulnerable\\auth_service.py",
+    "features": {
+      "uses_weak_algorithm": 1,
+      "dangerous_function": 1,
+      "uses_concat": 0,
+      "uses_user_input": 0
+    },
+    "feature_signal": 0.2,
+    "base_severity": 0.7,
+    "static_risk_score": 0.5
+  },
+  {
+    "type": "Hardcoded Credentials",
+    "line": 3,
+    "code": "password = \"supersecret123\"",
+    "details": {
+      "variable_name": "password",
+      "credential_type": "password",
+      "value_length": 14
+    },
+    "file": "data\\vulnerable\\config.py",
+    "features": {
+      "is_sensitive_varname": 1,
+      "is_string_literal": 1,
+      "long_secret": 1,
+      "dangerous_function": 0
+    },
+    "feature_signal": 0.2,
+    "base_severity": 0.75,
+    "static_risk_score": 0.53
+  },
+  {
+    "type": "Hardcoded Credentials",
+    "line": 4,
+    "code": "api_key = \"sk-abc123xyz789\"",
+    "details": {
+      "variable_name": "api_key",
+      "credential_type": "api_key",
+      "value_length": 15
+    },
+    "file": "data\\vulnerable\\config.py",
+    "features": {
+      "is_sensitive_varname": 1,
+      "is_string_literal": 1,
+      "long_secret": 1,
+      "dangerous_function": 0
+    },
+    "feature_signal": 0.2,
+    "base_severity": 0.75,
+    "static_risk_score": 0.53
+  },
+  {
+    "type": "Hardcoded Credentials",
+    "line": 5,
+    "code": "secret = \"my_jwt_secret_key\"",
+    "details": {
+      "variable_name": "secret",
+      "credential_type": "secret",
+      "value_length": 17
+    },
+    "file": "data\\vulnerable\\config.py",
+    "features": {
+      "is_sensitive_varname": 1,
+      "is_string_literal": 1,
+      "long_secret": 1,
+      "dangerous_function": 0
+    },
+    "feature_signal": 0.2,
+    "base_severity": 0.75,
+    "static_risk_score": 0.53
+  },
+  {
+    "type": "Hardcoded Credentials",
+    "line": 6,
+    "code": "db_password = \"admin1234\"",
+    "details": {
+      "variable_name": "db_password",
+      "credential_type": "db_password",
+      "value_length": 9
+    },
+    "file": "data\\vulnerable\\config.py",
+    "features": {
+      "is_sensitive_varname": 1,
+      "is_string_literal": 1,
+      "long_secret": 0,
+      "dangerous_function": 0
+    },
+    "feature_signal": 0.15,
+    "base_severity": 0.75,
+    "static_risk_score": 0.51
+  },
+  {
+    "type": "Hardcoded Credentials",
+    "line": 8,
+    "code": "db_password = \"pipeline_secret_123\"",
+    "details": {
+      "variable_name": "db_password",
+      "credential_type": "db_password",
+      "value_length": 19
+    },
+    "file": "data\\vulnerable\\data_pipeline.py",
+    "features": {
+      "is_sensitive_varname": 1,
+      "is_string_literal": 1,
+      "long_secret": 1,
+      "dangerous_function": 0
+    },
+    "feature_signal": 0.2,
+    "base_severity": 0.75,
+    "static_risk_score": 0.53
+  },
+  {
+    "type": "Hardcoded Credentials",
+    "line": 9,
+    "code": "access_key  = \"AKIAIOSFODNN7EXAMPLE\"",
+    "details": {
+      "variable_name": "access_key",
+      "credential_type": "access_key",
+      "value_length": 20
+    },
+    "file": "data\\vulnerable\\data_pipeline.py",
+    "features": {
+      "is_sensitive_varname": 1,
+      "is_string_literal": 1,
+      "long_secret": 1,
+      "dangerous_function": 0
+    },
+    "feature_signal": 0.2,
+    "base_severity": 0.75,
+    "static_risk_score": 0.53
+  },
+  {
+    "type": "Path Traversal",
+    "line": 21,
+    "code": "with open(\"configs/\" + filepath) as f:",
+    "details": {
+      "function_called": "open",
+      "uses_concat": true,
+      "uses_user_input": false
+    },
+    "file": "data\\vulnerable\\data_pipeline.py",
+    "features": {
+      "uses_file_open": 1,
+      "uses_concat": 1,
+      "uses_user_input": 0,
+      "dangerous_function": 1
+    },
+    "feature_signal": 0.45,
+    "base_severity": 0.85,
+    "static_risk_score": 0.69
+  },
+  {
+    "type": "Path Traversal",
+    "line": 26,
+    "code": "with open(\"results/\" + filename, \"w\") as f:",
+    "details": {
+      "function_called": "open",
+      "uses_concat": true,
+      "uses_user_input": false
+    },
+    "file": "data\\vulnerable\\data_pipeline.py",
+    "features": {
+      "uses_file_open": 1,
+      "uses_concat": 1,
+      "uses_user_input": 0,
+      "dangerous_function": 1
+    },
+    "feature_signal": 0.45,
+    "base_severity": 0.85,
+    "static_risk_score": 0.69
+  },
+  {
+    "type": "Path Traversal",
+    "line": 31,
+    "code": "with open(\"checkpoints/\" + checkpoint_name, \"rb\") as f:",
+    "details": {
+      "function_called": "open",
+      "uses_concat": true,
+      "uses_user_input": false
+    },
+    "file": "data\\vulnerable\\data_pipeline.py",
+    "features": {
+      "uses_file_open": 1,
+      "uses_concat": 1,
+      "uses_user_input": 0,
+      "dangerous_function": 1
+    },
+    "feature_signal": 0.45,
+    "base_severity": 0.85,
+    "static_risk_score": 0.69
+  },
+  {
+    "type": "Insecure Deserialization",
+    "line": 13,
+    "code": "return pickle.loads(serialized_data)",
+    "details": {
+      "function_called": "pickle.loads",
+      "module": "pickle",
+      "uses_user_input": false
+    },
+    "file": "data\\vulnerable\\data_pipeline.py",
+    "features": {
+      "uses_pickle_yaml": 1,
+      "uses_user_input": 0,
+      "dangerous_function": 1,
+      "uses_concat": 0
+    },
+    "feature_signal": 0.25,
+    "base_severity": 0.92,
+    "static_risk_score": 0.652
+  },
+  {
+    "type": "Insecure Deserialization",
+    "line": 17,
+    "code": "return yaml.load(config_data)",
+    "details": {
+      "function_called": "yaml.load",
+      "module": "yaml",
+      "uses_user_input": false
+    },
+    "file": "data\\vulnerable\\data_pipeline.py",
+    "features": {
+      "uses_pickle_yaml": 1,
+      "uses_user_input": 0,
+      "dangerous_function": 1,
+      "uses_concat": 0
+    },
+    "feature_signal": 0.25,
+    "base_severity": 0.92,
+    "static_risk_score": 0.652
+  },
+  {
+    "type": "Insecure Deserialization",
+    "line": 22,
+    "code": "return yaml.load(f)",
+    "details": {
+      "function_called": "yaml.load",
+      "module": "yaml",
+      "uses_user_input": false
+    },
+    "file": "data\\vulnerable\\data_pipeline.py",
+    "features": {
+      "uses_pickle_yaml": 1,
+      "uses_user_input": 0,
+      "dangerous_function": 1,
+      "uses_concat": 0
+    },
+    "feature_signal": 0.25,
+    "base_severity": 0.92,
+    "static_risk_score": 0.652
+  },
+  {
+    "type": "Insecure Deserialization",
+    "line": 32,
+    "code": "return pickle.load(f)",
+    "details": {
+      "function_called": "pickle.load",
+      "module": "pickle",
+      "uses_user_input": false
+    },
+    "file": "data\\vulnerable\\data_pipeline.py",
+    "features": {
+      "uses_pickle_yaml": 1,
+      "uses_user_input": 0,
+      "dangerous_function": 1,
+      "uses_concat": 0
+    },
+    "feature_signal": 0.25,
+    "base_severity": 0.92,
+    "static_risk_score": 0.652
+  },
+  {
+    "type": "Command Injection",
+    "line": 22,
+    "code": "os.system(\"zip output.zip \" + filename)",
+    "details": {
+      "function_called": "os.system",
+      "uses_concat": true,
+      "uses_user_input": false
+    },
+    "file": "data\\vulnerable\\file_manager.py",
+    "features": {
+      "uses_os_subprocess": 1,
+      "uses_concat": 1,
+      "uses_user_input": 0,
+      "dangerous_function": 1
+    },
+    "feature_signal": 0.45,
+    "base_severity": 0.95,
+    "static_risk_score": 0.75
+  },
+  {
+    "type": "Command Injection",
+    "line": 26,
+    "code": "subprocess.run(\"convert \" + input_file + \" \" + output_file, shell=True)",
+    "details": {
+      "function_called": "subprocess.run",
+      "uses_concat": true,
+      "uses_user_input": false
+    },
+    "file": "data\\vulnerable\\file_manager.py",
+    "features": {
+      "uses_os_subprocess": 1,
+      "uses_concat": 1,
+      "uses_user_input": 0,
+      "dangerous_function": 1
+    },
+    "feature_signal": 0.45,
+    "base_severity": 0.95,
+    "static_risk_score": 0.75
+  },
+  {
+    "type": "Path Traversal",
+    "line": 18,
+    "code": "return os.listdir(\"users/\" + directory)",
+    "details": {
+      "function_called": "os.listdir",
+      "uses_concat": true,
+      "uses_user_input": false
+    },
+    "file": "data\\vulnerable\\file_manager.py",
+    "features": {
+      "uses_file_open": 1,
+      "uses_concat": 1,
+      "uses_user_input": 0,
+      "dangerous_function": 1
+    },
+    "feature_signal": 0.45,
+    "base_severity": 0.85,
+    "static_risk_score": 0.69
+  },
+  {
+    "type": "Path Traversal",
+    "line": 13,
+    "code": "with open(f\"documents/{doc_path}\", \"r\") as f:",
+    "details": {
+      "function_called": "open",
+      "uses_concat": true,
+      "uses_user_input": false
+    },
+    "file": "data\\vulnerable\\file_manager.py",
+    "features": {
+      "uses_file_open": 1,
+      "uses_concat": 1,
+      "uses_user_input": 0,
+      "dangerous_function": 1
+    },
+    "feature_signal": 0.45,
+    "base_severity": 0.85,
+    "static_risk_score": 0.69
+  },
+  {
+    "type": "Path Traversal",
+    "line": 9,
+    "code": "return open(\"uploads/\" + filename).read()",
+    "details": {
+      "function_called": "open",
+      "uses_concat": true,
+      "uses_user_input": false
+    },
+    "file": "data\\vulnerable\\file_manager.py",
+    "features": {
+      "uses_file_open": 1,
+      "uses_concat": 1,
+      "uses_user_input": 0,
+      "dangerous_function": 1
+    },
+    "feature_signal": 0.45,
+    "base_severity": 0.85,
+    "static_risk_score": 0.69
+  },
+  {
+    "type": "Weak Cryptography",
+    "line": 30,
+    "code": "return hashlib.md5(password.encode()).hexdigest()",
+    "details": {
+      "function_called": "hashlib.md5",
+      "algorithm": "md5"
+    },
+    "file": "data\\vulnerable\\file_manager.py",
+    "features": {
+      "uses_weak_algorithm": 1,
+      "dangerous_function": 1,
+      "uses_concat": 0,
+      "uses_user_input": 0
+    },
+    "feature_signal": 0.2,
+    "base_severity": 0.7,
+    "static_risk_score": 0.5
+  },
+  {
+    "type": "Weak Cryptography",
+    "line": 34,
+    "code": "return hashlib.sha1(user_id.encode()).hexdigest()",
+    "details": {
+      "function_called": "hashlib.sha1",
+      "algorithm": "sha1"
+    },
+    "file": "data\\vulnerable\\file_manager.py",
+    "features": {
+      "uses_weak_algorithm": 1,
+      "dangerous_function": 1,
+      "uses_concat": 0,
+      "uses_user_input": 0
+    },
+    "feature_signal": 0.2,
+    "base_severity": 0.7,
+    "static_risk_score": 0.5
+  },
+  {
+    "type": "SQL Injection",
+    "line": 6,
+    "code": "cursor.execute(\"SELECT * FROM users WHERE email='\" + email + \"'\")",
+    "details": {
+      "function_called": "execute",
+      "has_sql_keyword": true,
+      "uses_concat": true,
+      "uses_user_input": false
+    },
+    "file": "data\\vulnerable\\login.py",
+    "features": {
+      "has_sql_keyword": 1,
+      "uses_concat": 1,
+      "uses_user_input": 0,
+      "dangerous_function": 1
+    },
+    "feature_signal": 0.45,
+    "base_severity": 0.9,
+    "static_risk_score": 0.72
+  },
+  {
+    "type": "SQL Injection",
+    "line": 14,
+    "code": "cursor.execute(\"SELECT * FROM users WHERE id=\" + user_id)",
+    "details": {
+      "function_called": "execute",
+      "has_sql_keyword": true,
+      "uses_concat": true,
+      "uses_user_input": false
+    },
+    "file": "data\\vulnerable\\user_service.py",
+    "features": {
+      "has_sql_keyword": 1,
+      "uses_concat": 1,
+      "uses_user_input": 0,
+      "dangerous_function": 1
+    },
+    "feature_signal": 0.45,
+    "base_severity": 0.9,
+    "static_risk_score": 0.72
+  },
+  {
+    "type": "SQL Injection",
+    "line": 21,
+    "code": "cursor.execute(\"SELECT * FROM users WHERE name='\" + name + \"'\")",
+    "details": {
+      "function_called": "execute",
+      "has_sql_keyword": true,
+      "uses_concat": true,
+      "uses_user_input": false
+    },
+    "file": "data\\vulnerable\\user_service.py",
+    "features": {
+      "has_sql_keyword": 1,
+      "uses_concat": 1,
+      "uses_user_input": 0,
+      "dangerous_function": 1
+    },
+    "feature_signal": 0.45,
+    "base_severity": 0.9,
+    "static_risk_score": 0.72
+  },
+  {
+    "type": "Hardcoded Credentials",
+    "line": 7,
+    "code": "api_key = \"sk-prod-abc123xyz789\"",
+    "details": {
+      "variable_name": "api_key",
+      "credential_type": "api_key",
+      "value_length": 20
+    },
+    "file": "data\\vulnerable\\user_service.py",
+    "features": {
+      "is_sensitive_varname": 1,
+      "is_string_literal": 1,
+      "long_secret": 1,
+      "dangerous_function": 0
+    },
+    "feature_signal": 0.2,
+    "base_severity": 0.75,
+    "static_risk_score": 0.53
+  },
+  {
+    "type": "Hardcoded Credentials",
+    "line": 8,
+    "code": "secret = \"jwt_secret_do_not_share\"",
+    "details": {
+      "variable_name": "secret",
+      "credential_type": "secret",
+      "value_length": 23
+    },
+    "file": "data\\vulnerable\\user_service.py",
+    "features": {
+      "is_sensitive_varname": 1,
+      "is_string_literal": 1,
+      "long_secret": 1,
+      "dangerous_function": 0
+    },
+    "feature_signal": 0.2,
+    "base_severity": 0.75,
+    "static_risk_score": 0.53
+  },
+  {
+    "type": "SSRF",
+    "line": 26,
+    "code": "response = requests.get(\"http://avatars.internal/\" + url)",
+    "details": {
+      "function_called": "requests.get",
+      "uses_concat": true,
+      "uses_user_input": false
+    },
+    "file": "data\\vulnerable\\user_service.py",
+    "features": {
+      "uses_http_call": 1,
+      "uses_concat": 1,
+      "uses_user_input": 0,
+      "dangerous_function": 1
+    },
+    "feature_signal": 0.45,
+    "base_severity": 0.88,
+    "static_risk_score": 0.708
+  },
+  {
+    "type": "SSRF",
+    "line": 32,
+    "code": "response = requests.get(f\"http://api.internal/profile/{profile_url}\")",
+    "details": {
+      "function_called": "requests.get",
+      "uses_concat": true,
+      "uses_user_input": false
+    },
+    "file": "data\\vulnerable\\user_service.py",
+    "features": {
+      "uses_http_call": 1,
+      "uses_concat": 1,
+      "uses_user_input": 0,
+      "dangerous_function": 1
+    },
+    "feature_signal": 0.45,
+    "base_severity": 0.88,
+    "static_risk_score": 0.708
+  },
+  {
+    "type": "Command Injection",
+    "line": 6,
+    "code": "subprocess.run(\"bash -c \" + cmd, shell=True)",
+    "details": {
+      "function_called": "subprocess.run",
+      "uses_concat": true,
+      "uses_user_input": false
+    },
+    "file": "data\\vulnerable\\utils.py",
+    "features": {
+      "uses_os_subprocess": 1,
+      "uses_concat": 1,
+      "uses_user_input": 0,
+      "dangerous_function": 1
+    },
+    "feature_signal": 0.45,
+    "base_severity": 0.95,
+    "static_risk_score": 0.75
+  },
+  {
+    "type": "Hardcoded Credentials",
+    "line": 3,
+    "code": "auth_token = \"hardcoded_token_abc987\"",
+    "details": {
+      "variable_name": "auth_token",
+      "credential_type": "auth_token",
+      "value_length": 22
+    },
+    "file": "data\\vulnerable\\utils.py",
+    "features": {
+      "is_sensitive_varname": 1,
+      "is_string_literal": 1,
+      "long_secret": 1,
+      "dangerous_function": 0
+    },
+    "feature_signal": 0.2,
+    "base_severity": 0.75,
+    "static_risk_score": 0.53
+  }
+]
