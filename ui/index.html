@@ -1,0 +1,2115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SCIE // Secure Code Intelligence Engine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+
+<style>
+:root {
+  /* Core palette */
+  --g:     #10b981;
+  --gdim:  #059669;
+  --glow:  rgba(16,185,129,0.25);
+  --gfnt:  rgba(16,185,129,0.06);
+  --amb:   #f59e0b;
+  --red:   #ef4444;
+  --red-d: rgba(239,68,68,0.15);
+  --cyn:   #06b6d4;
+  --pur:   #a78bfa;
+  --blue:  #3b82f6;
+
+  /* Backgrounds - darker, more contrast */
+  --bg:    #080d0f;
+  --bg2:   #0d1417;
+  --bg3:   #121c1f;
+  --bg4:   #162024;
+  --bdr:   rgba(16,185,129,0.12);
+  --bdr2:  rgba(16,185,129,0.2);
+
+  /* Text - much better contrast */
+  --tx:    #e2ede9;
+  --tx2:   #a8c4bb;
+  --txd:   #5a8070;
+  --txf:   #2d5244;
+
+  /* Fonts */
+  --mono:  'JetBrains Mono', monospace;
+  --sans:  'Inter', sans-serif;
+  --disp:  'Syne', sans-serif;
+
+  --radius: 6px;
+  --shadow: 0 4px 24px rgba(0,0,0,0.5);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+
+body {
+  background: var(--bg);
+  color: var(--tx);
+  font-family: var(--sans);
+  font-size: 13px;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.5;
+}
+
+/* Subtle grid bg */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(16,185,129,0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(16,185,129,0.02) 1px, transparent 1px);
+  background-size: 32px 32px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Vignette */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.6) 100%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+@keyframes fadein  { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: none } }
+@keyframes slidein { from { opacity: 0; transform: translateX(-8px) } to { opacity: 1; transform: none } }
+@keyframes spin    { to { transform: rotate(360deg) } }
+@keyframes blink   { 0%,100% { opacity: 1 } 50% { opacity: 0 } }
+@keyframes pulse-g { 0%,100% { box-shadow: 0 0 0 0 var(--glow) } 50% { box-shadow: 0 0 0 6px transparent } }
+@keyframes prog    { from { width: 0 } }
+@keyframes scanline {
+  0%   { transform: translateY(-100%) }
+  100% { transform: translateY(100vh) }
+}
+
+/* scanline effect */
+.scanline {
+  position: fixed;
+  left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(transparent, rgba(16,185,129,0.04), transparent);
+  animation: scanline 10s linear infinite;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* ── HEADER ───────────────────────────────────────────────────────────── */
+header {
+  position: relative;
+  z-index: 100;
+  border-bottom: 1px solid var(--bdr);
+  background: rgba(13,20,23,0.95);
+  backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 28px;
+  height: 56px;
+  flex-shrink: 0;
+}
+
+.logo {
+  font-family: var(--disp);
+  font-weight: 800;
+  font-size: 15px;
+  letter-spacing: 3px;
+  color: var(--g);
+  text-shadow: 0 0 24px rgba(16,185,129,0.5);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo-sub {
+  font-family: var(--sans);
+  font-weight: 400;
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--txd);
+  text-transform: uppercase;
+}
+
+.logo-sep { color: var(--txf); margin: 0 4px; }
+
+.cursor {
+  display: inline-block;
+  width: 8px; height: 15px;
+  background: var(--g);
+  animation: blink 1.2s infinite;
+  vertical-align: middle;
+  border-radius: 1px;
+}
+
+.hdr-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  color: var(--txd);
+}
+
+.status-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--g);
+  display: inline-block;
+  margin-right: 6px;
+  animation: pulse-g 2s infinite;
+}
+
+/* ── NAV TABS ─────────────────────────────────────────────────────────── */
+nav {
+  position: relative;
+  z-index: 100;
+  border-bottom: 1px solid var(--bdr);
+  background: rgba(13,20,23,0.9);
+  display: flex;
+  padding: 0 24px;
+  flex-shrink: 0;
+  gap: 2px;
+}
+
+.tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--txd);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 1.5px;
+  padding: 13px 16px;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: color .15s, border-color .15s;
+  margin-bottom: -1px;
+  white-space: nowrap;
+}
+.tab:hover { color: var(--tx2); }
+.tab.active {
+  color: var(--g);
+  border-bottom-color: var(--g);
+  text-shadow: 0 0 12px rgba(16,185,129,0.4);
+}
+.tab:disabled { opacity: .3; cursor: not-allowed; }
+
+/* ── MAIN ─────────────────────────────────────────────────────────────── */
+#app {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 2;
+}
+
+.view {
+  display: none;
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 28px;
+  animation: fadein .25s ease;
+}
+.view.active { display: block; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--bdr2); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--gdim); }
+
+/* ── PANELS ───────────────────────────────────────────────────────────── */
+.panel {
+  background: var(--bg2);
+  border: 1px solid var(--bdr);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+
+.ph {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--bdr);
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  color: var(--txd);
+  text-transform: uppercase;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.badge {
+  background: var(--gfnt);
+  color: var(--g);
+  border: 1px solid rgba(16,185,129,0.25);
+  padding: 2px 8px;
+  font-size: 9px;
+  border-radius: 3px;
+  font-weight: 500;
+}
+
+/* ── UPLOAD VIEW ──────────────────────────────────────────────────────── */
+#drop-zone {
+  border: 1px dashed var(--bdr2);
+  background: var(--bg2);
+  border-radius: var(--radius);
+  padding: 56px 40px;
+  text-align: center;
+  cursor: pointer;
+  transition: all .2s;
+  margin-bottom: 18px;
+  position: relative;
+}
+#drop-zone:hover, #drop-zone.drag {
+  border-color: var(--g);
+  background: var(--gfnt);
+  box-shadow: 0 0 40px rgba(16,185,129,0.05), inset 0 0 40px rgba(16,185,129,0.03);
+}
+#drop-zone input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  width: 100%;
+  height: 100%;
+}
+.drop-icon {
+  font-size: 32px;
+  margin-bottom: 14px;
+  display: block;
+  opacity: 0.6;
+}
+.drop-title {
+  font-family: var(--disp);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--tx);
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+}
+.drop-sub {
+  color: var(--txd);
+  font-size: 12px;
+  line-height: 1.9;
+  font-family: var(--sans);
+}
+
+#file-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.file-chip {
+  background: var(--bg3);
+  border: 1px solid var(--bdr2);
+  color: var(--tx2);
+  padding: 5px 12px;
+  font-size: 11px;
+  font-family: var(--mono);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.file-chip .icon { color: var(--g); font-size: 11px; }
+.file-chip .rm { cursor: pointer; color: var(--txd); font-size: 13px; line-height: 1; }
+.file-chip .rm:hover { color: var(--red); }
+
+.mode-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.mode-btn {
+  background: var(--bg2);
+  border: 1px solid var(--bdr);
+  border-radius: var(--radius);
+  color: var(--txd);
+  font-family: var(--sans);
+  font-size: 12px;
+  padding: 16px 18px;
+  cursor: pointer;
+  text-align: left;
+  transition: all .2s;
+}
+.mode-btn:hover { border-color: var(--bdr2); color: var(--tx2); }
+.mode-btn.sel {
+  border-color: var(--gdim);
+  color: var(--tx);
+  background: var(--gfnt);
+  box-shadow: 0 0 20px rgba(16,185,129,0.07);
+}
+.mode-title {
+  font-family: var(--disp);
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: inherit;
+}
+.mode-desc {
+  font-size: 11px;
+  color: var(--txd);
+  line-height: 1.7;
+}
+.mode-btn.sel .mode-title { color: var(--g); }
+
+#scan-btn {
+  width: 100%;
+  background: linear-gradient(135deg, rgba(16,185,129,0.15), rgba(16,185,129,0.05));
+  border: 1px solid var(--gdim);
+  border-radius: var(--radius);
+  color: var(--g);
+  font-family: var(--disp);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  padding: 16px;
+  cursor: pointer;
+  transition: all .2s;
+  text-transform: uppercase;
+}
+#scan-btn:hover {
+  background: linear-gradient(135deg, rgba(16,185,129,0.25), rgba(16,185,129,0.1));
+  box-shadow: 0 0 28px rgba(16,185,129,0.15);
+}
+#scan-btn:disabled { opacity: .4; cursor: not-allowed; box-shadow: none; }
+
+/* ── SCANNING VIEW ────────────────────────────────────────────────────── */
+#scan-view {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 420px;
+  text-align: center;
+}
+
+.spinner {
+  width: 48px; height: 48px;
+  border: 2px solid var(--bdr);
+  border-top-color: var(--g);
+  border-radius: 50%;
+  animation: spin .75s linear infinite;
+  margin: 0 auto 24px;
+  box-shadow: 0 0 20px rgba(16,185,129,0.2);
+}
+
+#scan-label {
+  font-family: var(--disp);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--g);
+  letter-spacing: 1px;
+  margin-bottom: 20px;
+}
+
+.prog-track {
+  width: 380px;
+  height: 3px;
+  background: var(--bdr);
+  border-radius: 2px;
+  overflow: hidden;
+  margin: 0 auto 20px;
+}
+.prog-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--gdim), var(--g));
+  box-shadow: 0 0 10px var(--g);
+  border-radius: 2px;
+  transition: width .4s ease;
+}
+
+#scan-log {
+  width: 440px;
+  background: var(--bg2);
+  border: 1px solid var(--bdr);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  text-align: left;
+  max-height: 180px;
+  overflow-y: auto;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--txd);
+  line-height: 2;
+}
+#scan-log .entry::before { content: '▸ '; color: var(--gdim); }
+
+/* ── STAT CARDS ───────────────────────────────────────────────────────── */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.sc {
+  background: var(--bg2);
+  border: 1px solid var(--bdr);
+  border-radius: var(--radius);
+  padding: 18px 16px;
+  position: relative;
+  overflow: hidden;
+  animation: slidein .35s ease both;
+}
+.sc::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--ac, var(--g));
+  box-shadow: 0 0 10px var(--ac, var(--g));
+}
+
+.sc-num {
+  font-family: var(--disp);
+  font-size: 30px;
+  font-weight: 800;
+  color: var(--ac, var(--g));
+  line-height: 1;
+  margin-bottom: 6px;
+}
+.sc-lbl {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  color: var(--tx2);
+  text-transform: uppercase;
+}
+.sc-sub {
+  font-size: 10px;
+  color: var(--txd);
+  margin-top: 3px;
+}
+
+/* ── BARS ─────────────────────────────────────────────────────────────── */
+.bt {
+  background: rgba(255,255,255,0.04);
+  border-radius: 2px;
+  height: 4px;
+  overflow: hidden;
+  margin-top: 5px;
+}
+.bf {
+  height: 100%;
+  box-shadow: 0 0 6px var(--fc, var(--g));
+  transition: width 1s cubic-bezier(.4,0,.2,1);
+  border-radius: 2px;
+  width: 0;
+}
+
+/* ── TABLE ────────────────────────────────────────────────────────────── */
+.tbl { width: 100%; border-collapse: collapse; }
+.tbl th {
+  text-align: left;
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  color: var(--txd);
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--bdr);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.tbl td {
+  padding: 10px 14px;
+  font-size: 12px;
+  border-bottom: 1px solid rgba(16,185,129,0.05);
+  vertical-align: middle;
+}
+.tbl tr.fr { cursor: pointer; transition: background .1s; }
+.tbl tr.fr:hover td { background: rgba(16,185,129,0.04); }
+.tbl tr.fr.sel td { background: var(--gfnt); }
+
+.rb {
+  padding: 2px 8px;
+  font-size: 9px;
+  font-family: var(--mono);
+  font-weight: 700;
+  letter-spacing: 1px;
+  border: 1px solid;
+  border-radius: 3px;
+  display: inline-block;
+}
+
+/* ── DETAIL PANEL ─────────────────────────────────────────────────────── */
+#dp {
+  position: fixed;
+  right: 0; top: 0; bottom: 0;
+  width: 500px;
+  background: rgba(10,16,18,0.98);
+  backdrop-filter: blur(20px);
+  border-left: 1px solid var(--bdr2);
+  overflow-y: auto;
+  z-index: 300;
+  transform: translateX(100%);
+  transition: transform .28s cubic-bezier(.4,0,.2,1);
+  box-shadow: -20px 0 60px rgba(0,0,0,0.6);
+}
+#dp.open { transform: none; }
+
+.dph {
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--bdr);
+  position: sticky;
+  top: 0;
+  background: rgba(10,16,18,0.98);
+  z-index: 1;
+}
+
+.cb {
+  background: none;
+  border: 1px solid var(--bdr2);
+  border-radius: 4px;
+  color: var(--txd);
+  padding: 4px 10px;
+  cursor: pointer;
+  font-family: var(--mono);
+  font-size: 10px;
+  transition: all .15s;
+}
+.cb:hover { border-color: var(--red); color: var(--red); }
+
+.cb-blk {
+  background: rgba(0,0,0,0.4);
+  border: 1px solid var(--bdr);
+  border-radius: 4px;
+  padding: 12px 14px;
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  word-break: break-all;
+  overflow-x: auto;
+}
+
+.sl {
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  color: var(--txd);
+  text-transform: uppercase;
+  margin-bottom: 7px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sl::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--bdr);
+}
+
+/* ── CLUSTERS ─────────────────────────────────────────────────────────── */
+.cc {
+  border: 1px solid var(--bdr);
+  background: var(--bg2);
+  border-radius: var(--radius);
+  margin-bottom: 8px;
+  overflow: hidden;
+  transition: border-color .2s;
+}
+.cc:hover, .cc.exp { border-color: var(--bdr2); }
+
+.cch {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  cursor: pointer;
+}
+
+.ccb {
+  display: none;
+  padding: 16px 18px;
+  border-top: 1px solid var(--bdr);
+  background: rgba(0,0,0,0.2);
+  animation: fadein .2s ease;
+}
+.cc.exp .ccb { display: block; }
+
+.pb { height: 2px; background: rgba(255,255,255,0.04); }
+.pf { height: 100%; transition: width 1s ease; width: 0; }
+
+.tag {
+  display: inline-block;
+  background: var(--bg3);
+  border: 1px solid var(--bdr);
+  color: var(--tx2);
+  padding: 2px 8px;
+  font-size: 10px;
+  font-family: var(--mono);
+  border-radius: 3px;
+  margin: 2px;
+}
+
+/* ── FILTERS ──────────────────────────────────────────────────────────── */
+.pill {
+  padding: 4px 12px;
+  font-size: 10px;
+  font-family: var(--mono);
+  letter-spacing: 0.5px;
+  border: 1px solid var(--bdr);
+  border-radius: 20px;
+  background: none;
+  color: var(--txd);
+  cursor: pointer;
+  transition: all .15s;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.pill:hover, .pill.on {
+  border-color: var(--gdim);
+  color: var(--g);
+  background: var(--gfnt);
+}
+
+select {
+  background: var(--bg2);
+  border: 1px solid var(--bdr);
+  color: var(--tx2);
+  padding: 5px 10px;
+  font-family: var(--mono);
+  font-size: 10px;
+  cursor: pointer;
+  border-radius: 4px;
+  outline: none;
+}
+select:focus { border-color: var(--bdr2); }
+
+/* ── RISK CHART ───────────────────────────────────────────────────────── */
+.rc {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 64px;
+  padding: 0 2px;
+}
+.rbi {
+  flex: 1;
+  border-radius: 2px 2px 0 0;
+  cursor: pointer;
+  opacity: .7;
+  transition: opacity .15s, filter .15s;
+  min-width: 3px;
+}
+.rbi:hover { opacity: 1; filter: brightness(1.4); }
+
+/* ── GRIDS ────────────────────────────────────────────────────────────── */
+.g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+.g4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; }
+
+/* ── PROMPT LINE ──────────────────────────────────────────────────────── */
+.pmt {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--txd);
+  padding: 8px 14px;
+  background: var(--bg2);
+  border: 1px solid var(--bdr);
+  border-radius: 4px;
+  margin-bottom: 16px;
+}
+.pmt .prompt-user { color: var(--g); font-weight: 600; }
+.pmt .prompt-path { color: var(--cyn); }
+
+/* ── METRIC RING ──────────────────────────────────────────────────────── */
+.mr {
+  width: 100px; height: 100px;
+  border-radius: 50%;
+  border: 2px solid;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 10px;
+}
+.mv { font-family: var(--disp); font-size: 20px; font-weight: 800; }
+.ml { font-size: 8px; letter-spacing: 1.5px; color: var(--txd); text-transform: uppercase; }
+
+/* ── PDF EXPORT BUTTON ────────────────────────────────────────────────── */
+#pdf-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: linear-gradient(135deg, rgba(6,182,212,0.15), rgba(6,182,212,0.05));
+  border: 1px solid rgba(6,182,212,0.4);
+  border-radius: var(--radius);
+  color: var(--cyn);
+  font-family: var(--disp);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  padding: 7px 14px;
+  cursor: pointer;
+  transition: all .2s;
+  white-space: nowrap;
+}
+#pdf-btn:hover {
+  background: linear-gradient(135deg, rgba(6,182,212,0.25), rgba(6,182,212,0.1));
+  box-shadow: 0 0 18px rgba(6,182,212,0.2);
+}
+#pdf-btn:disabled { opacity: .4; cursor: not-allowed; box-shadow: none; }
+#pdf-btn .pdf-icon { font-size: 13px; }
+
+/* PDF toast notification */
+#pdf-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: var(--bg2);
+  border: 1px solid var(--bdr2);
+  border-radius: var(--radius);
+  padding: 12px 18px;
+  font-size: 12px;
+  color: var(--tx2);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: var(--shadow);
+  transform: translateY(80px);
+  opacity: 0;
+  transition: all .3s cubic-bezier(.4,0,.2,1);
+  pointer-events: none;
+}
+#pdf-toast.show { transform: none; opacity: 1; }
+#pdf-toast .t-icon { font-size: 16px; }
+
+/* ── EMPTY STATE ──────────────────────────────────────────────────────── */
+.empty {
+  text-align: center;
+  padding: 60px;
+  color: var(--txd);
+  font-size: 12px;
+  line-height: 2.2;
+}
+.empty-icon { font-size: 28px; margin-bottom: 10px; display: block; opacity: 0.5; }
+
+/* ── INFO BLOCKS in Detail Panel ─────────────────────────────────────── */
+.info-block {
+  background: rgba(0,0,0,0.3);
+  border-radius: 4px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--tx2);
+}
+.info-block.warn {
+  border-left: 3px solid var(--red);
+  background: rgba(239,68,68,0.05);
+  color: #fca5a5;
+}
+.info-block.ok {
+  border-left: 3px solid var(--g);
+  background: rgba(16,185,129,0.05);
+  color: var(--tx2);
+}
+.info-block.accent {
+  border-left: 3px solid var(--cyn);
+  background: rgba(6,182,212,0.05);
+  color: var(--tx2);
+}
+
+/* Responsive mini table override */
+.ev-table { overflow-x: auto; }
+.ev-table .tbl td, .ev-table .tbl th { padding: 8px 10px; }
+
+</style>
+</head>
+<body>
+<div class="scanline"></div>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    SCIE <span class="logo-sep">//</span>
+    <span class="logo-sub">Secure Code Intelligence Engine</span>
+    <span class="cursor"></span>
+  </div>
+  <div class="hdr-right" id="hdr-status">
+    <span style="color: var(--txd)">NO SCAN LOADED</span>
+  </div>
+  <button id="pdf-btn" onclick="exportPDF()" disabled title="Download full report as PDF">
+    <span class="pdf-icon">⬇</span> Export PDF
+  </button>
+</header>
+
+<!-- Toast notification -->
+<div id="pdf-toast">
+  <span class="t-icon">📄</span>
+  <span id="pdf-toast-msg">Generating report…</span>
+</div>
+
+<!-- NAV -->
+<nav>
+  <button class="tab active"  data-view="upload"     onclick="switchView('upload',this)">Upload</button>
+  <button class="tab" id="t-overview"   data-view="overview"   onclick="switchView('overview',this)"   disabled>Overview</button>
+  <button class="tab" id="t-findings"   data-view="findings"   onclick="switchView('findings',this)"   disabled>Findings</button>
+  <button class="tab" id="t-clusters"   data-view="clusters"   onclick="switchView('clusters',this)"   disabled>Clusters</button>
+  <button class="tab" id="t-evaluation" data-view="evaluation" onclick="switchView('evaluation',this)" disabled>Evaluation</button>
+</nav>
+
+<div id="app">
+
+<!-- ══ UPLOAD ══════════════════════════════════════════════════════════ -->
+<div class="view active" id="view-upload">
+  <div id="drop-zone">
+    <input type="file" id="file-input" multiple accept=".py" onchange="addFiles(this.files)">
+    <span class="drop-icon">⌨</span>
+    <div class="drop-title">Drop Python Files to Scan</div>
+    <div class="drop-sub">
+      Drag &amp; drop <code style="color:var(--g);background:var(--gfnt);padding:1px 5px;border-radius:3px">.py</code> files or click to browse<br>
+      Multiple files supported · AST-based static analysis
+    </div>
+  </div>
+
+  <div id="file-list"></div>
+
+  <div class="mode-row">
+    <button class="mode-btn sel" id="mode-static" onclick="setMode('static')">
+      <div class="mode-title">⚡ Static Scan</div>
+      <div class="mode-desc">AST-based detection only, no LLM required.<br>Completes in under 3 seconds — ideal for quick checks.</div>
+    </button>
+    <button class="mode-btn" id="mode-full" onclick="setMode('full')">
+      <div class="mode-title">🧠 Full Pipeline</div>
+      <div class="mode-desc">Static + LLM analysis with patch generation<br>and business-level explanations. Takes 1–3 min.</div>
+    </button>
+  </div>
+
+  <button id="scan-btn" onclick="startScan()" disabled>Select Files to Begin Scan</button>
+</div>
+
+<!-- ══ SCANNING ════════════════════════════════════════════════════════ -->
+<div class="view" id="view-scanning">
+  <div id="scan-view">
+    <div class="spinner"></div>
+    <div id="scan-label">Initializing…</div>
+    <div class="prog-track"><div class="prog-fill" id="prog-fill"></div></div>
+    <div id="scan-log"></div>
+  </div>
+</div>
+
+<!-- ══ OVERVIEW ════════════════════════════════════════════════════════ -->
+<div class="view" id="view-overview">
+  <div class="pmt">
+    <span class="prompt-user">scie@engine</span>:<span class="prompt-path">~/scan</span>$ <span id="ov-cmd" style="color:var(--tx2)">scan complete</span>
+  </div>
+  <div class="stats" id="ov-stats"></div>
+  <div class="g2">
+    <div class="panel">
+      <div class="ph">Findings by Type <span class="badge" id="ov-type-badge"></span></div>
+      <div style="padding:16px" id="ov-type-bars"></div>
+    </div>
+    <div class="panel">
+      <div class="ph">Risk Distribution <span class="badge">Click bars to inspect</span></div>
+      <div style="padding:16px">
+        <div class="rc" id="ov-risk-chart"></div>
+        <div style="display:flex;justify-content:space-between;margin-top:6px">
+          <span style="font-size:9px;color:var(--txf);font-family:var(--mono)">← Highest risk</span>
+          <span style="font-size:9px;color:var(--txf);font-family:var(--mono)">Lowest risk →</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:14px" id="ov-legend"></div>
+      </div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="ph">Top Priority Clusters</div>
+    <div id="ov-clusters"></div>
+  </div>
+</div>
+
+<!-- ══ FINDINGS ════════════════════════════════════════════════════════ -->
+<div class="view" id="view-findings">
+  <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
+    <div style="display:flex;gap:6px;flex-wrap:wrap;flex:1" id="fi-pills"></div>
+    <select id="fi-sort" onchange="renderFindings()">
+      <option value="final_risk">Sort: Final Risk</option>
+      <option value="static_risk_score">Sort: Static Risk</option>
+      <option value="llm_confidence">Sort: LLM Confidence</option>
+    </select>
+  </div>
+  <div class="panel">
+    <table class="tbl">
+      <thead><tr>
+        <th>Type</th><th>File : Line</th><th>Snippet</th>
+        <th>Risk Score</th><th>Severity</th><th>CWE</th><th>Patch</th>
+      </tr></thead>
+      <tbody id="fi-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══ CLUSTERS ════════════════════════════════════════════════════════ -->
+<div class="view" id="view-clusters">
+  <div class="pmt">
+    <span class="prompt-user">&gt;</span> priority = <span style="color:var(--g)">0.4×avg_risk</span> + <span style="color:var(--amb)">0.2×frequency</span> + <span style="color:var(--cyn)">0.2×exploit_conf</span> + <span style="color:var(--pur)">0.2×module_weight</span>
+  </div>
+  <div id="cl-list"></div>
+</div>
+
+<!-- ══ EVALUATION ══════════════════════════════════════════════════════ -->
+<div class="view" id="view-evaluation">
+  <div id="ev-content"></div>
+</div>
+
+</div><!-- #app -->
+
+<!-- DETAIL PANEL -->
+<div id="dp">
+  <div class="dph">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <span style="font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--txd);text-transform:uppercase">Finding Detail</span>
+      <button class="cb" onclick="closeDp()">✕ Close</button>
+    </div>
+    <div id="dp-type" style="font-family:var(--disp);font-size:16px;font-weight:800;margin-bottom:4px"></div>
+    <div id="dp-file" style="font-family:var(--mono);font-size:10px;color:var(--txd)"></div>
+  </div>
+  <div style="padding:20px" id="dp-body"></div>
+</div>
+
+<script>
+// ── TYPES & COLOURS ─────────────────────────────────────────────────
+const TC = {
+  "Command Injection":        "#ef4444",
+  "SQL Injection":            "#f97316",
+  "SSRF":                     "#f59e0b",
+  "Path Traversal":           "#84cc16",
+  "Insecure Deserialization": "#a78bfa",
+  "Hardcoded Credentials":    "#10b981",
+  "Weak Cryptography":        "#06b6d4",
+  "Debug Mode":               "#64748b",
+};
+
+// ── STATE ────────────────────────────────────────────────────────────
+let FILES = [], SCAN_MODE = "static", JOB_ID = null;
+let FINDINGS = [], CLUSTERS = [], METRICS = {};
+let FI_FILTER = "ALL", POLL_TIMER = null, SEL_FINDING = null;
+
+// ── UTILS ─────────────────────────────────────────────────────────────
+const fname = p => p.split(/[/\\]/).pop();
+function risk(s){ if(s>=.8)return{l:"Critical",c:"#ef4444"}; if(s>=.6)return{l:"High",c:"#f97316"}; if(s>=.4)return{l:"Medium",c:"#f59e0b"}; return{l:"Low",c:"#10b981"} }
+function priority(s){ if(s>=.75)return{l:"P0 · Immediate",c:"#ef4444"}; if(s>=.6)return{l:"P1 · High",c:"#f97316"}; if(s>=.45)return{l:"P2 · Medium",c:"#f59e0b"}; return{l:"P3 · Low",c:"#10b981"} }
+function animBars(el){ el && el.querySelectorAll('.bf,.pf').forEach(b=>{ const w=b.dataset.w; if(w){b.style.width='0';requestAnimationFrame(()=>requestAnimationFrame(()=>b.style.width=w+'%'))} }) }
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') }
+
+// ── VIEW SWITCHING ────────────────────────────────────────────────────
+function switchView(id, btn){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('view-'+id).classList.add('active');
+  if(btn) btn.classList.add('active');
+  closeDp();
+  setTimeout(()=>animBars(document.getElementById('view-'+id)),120);
+}
+
+function unlockTabs(){
+  ['overview','findings','clusters','evaluation'].forEach(id=>{
+    document.getElementById('t-'+id).disabled = false;
+  });
+}
+
+// ── FILE HANDLING ──────────────────────────────────────────────────────
+const dz = document.getElementById('drop-zone');
+dz.addEventListener('dragover', e=>{ e.preventDefault(); dz.classList.add('drag') });
+dz.addEventListener('dragleave', ()=>dz.classList.remove('drag'));
+dz.addEventListener('drop', e=>{ e.preventDefault(); dz.classList.remove('drag'); addFiles(e.dataTransfer.files) });
+
+function addFiles(flist){
+  [...flist].filter(f=>f.name.endsWith('.py')).forEach(f=>{ if(!FILES.find(x=>x.name===f.name)) FILES.push(f) });
+  renderFileList(); updateScanBtn();
+}
+
+function renderFileList(){
+  const el = document.getElementById('file-list');
+  el.innerHTML = FILES.map((f,i)=>`
+    <div class="file-chip">
+      <span class="icon">◆</span>${esc(f.name)}
+      <span class="rm" onclick="removeFile(${i})">✕</span>
+    </div>`).join('');
+}
+
+function removeFile(i){ FILES.splice(i,1); renderFileList(); updateScanBtn() }
+
+function updateScanBtn(){
+  const btn = document.getElementById('scan-btn');
+  btn.disabled = FILES.length===0;
+  btn.textContent = FILES.length
+    ? `Run ${SCAN_MODE==='static'?'Static':'Full Pipeline'} Scan on ${FILES.length} File${FILES.length>1?'s':''}`
+    : 'Select Files to Begin Scan';
+}
+
+function setMode(m){
+  SCAN_MODE = m;
+  document.getElementById('mode-static').classList.toggle('sel', m==='static');
+  document.getElementById('mode-full').classList.toggle('sel', m==='full');
+  updateScanBtn();
+}
+
+// ── SCAN ──────────────────────────────────────────────────────────────
+async function startScan(){
+  if(!FILES.length) return;
+  const fd = new FormData();
+  FILES.forEach(f=>fd.append('files',f));
+  fd.append('mode', SCAN_MODE);
+
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-scanning').classList.add('active');
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+
+  try {
+    const res  = await fetch('/api/scan', {method:'POST', body:fd});
+    const data = await res.json();
+    if(!res.ok || data.error){ showScanError(data.error||'Upload failed'); return }
+    JOB_ID = data.job_id;
+    pollStatus();
+  } catch(e){ showScanError(e.message) }
+}
+
+function pollStatus(){
+  POLL_TIMER = setInterval(async()=>{
+    try {
+      const res  = await fetch(`/api/status/${JOB_ID}`);
+      const data = await res.json();
+      updateScanUI(data);
+      if(data.status==='done'||data.status==='error'){
+        clearInterval(POLL_TIMER);
+        if(data.status==='done') onScanDone(data);
+        else showScanError(data.error||'Unknown error');
+      }
+    } catch(e){ }
+  }, 600);
+}
+
+function updateScanUI(data){
+  document.getElementById('scan-label').textContent = data.step||'Processing…';
+  document.getElementById('prog-fill').style.width = (data.progress||0)+'%';
+  const log = document.getElementById('scan-log');
+  const entries = (data.log||[]).slice(-10);
+  log.innerHTML = entries.map(e=>`<div class="entry">${esc(e)}</div>`).join('');
+  log.scrollTop = log.scrollHeight;
+}
+
+function showScanError(msg){
+  document.getElementById('scan-label').textContent = 'Error';
+  document.getElementById('scan-label').style.color = 'var(--red)';
+  document.getElementById('scan-log').innerHTML = `<div style="color:var(--red)">▸ ${esc(msg)}</div>`;
+}
+
+function onScanDone(data){
+  FINDINGS = data.findings||[];
+  CLUSTERS = data.clusters||[];
+  METRICS  = data.metrics||{};
+
+  document.getElementById('hdr-status').innerHTML = `
+    <span><span class="status-dot"></span><span style="color:var(--g);font-weight:600">Scan Complete</span></span>
+    <span style="color:var(--txd)">${(data.filenames||[]).join(', ')}</span>
+    <span style="color:var(--amb)">${FINDINGS.length} vulns found</span>`;
+
+  buildOverview();
+  buildFindings();
+  buildClusters();
+  buildEvaluation();
+  unlockTabs();
+  document.getElementById('pdf-btn').disabled = false;
+  switchView('overview', document.querySelector('[data-view="overview"]'));
+}
+
+// ── OVERVIEW ──────────────────────────────────────────────────────────
+function buildOverview(){
+  document.getElementById('ov-cmd').textContent =
+    `scan complete · ${FINDINGS.length} findings · ${CLUSTERS.length} clusters · mode=${SCAN_MODE}`;
+
+  const critCount = FINDINGS.filter(f=>(f.final_risk||f.static_risk_score)>=.8).length;
+  const patchCount = FINDINGS.filter(f=>f.validated).length;
+  const avgRisk = FINDINGS.length
+    ? (FINDINGS.reduce((s,f)=>s+(f.final_risk||f.static_risk_score||0),0)/FINDINGS.length).toFixed(3)
+    : '—';
+
+  document.getElementById('ov-stats').innerHTML = [
+    {n: FINDINGS.length,       l:'Vulnerabilities', s:`across ${new Set(FINDINGS.map(f=>f.file)).size} files`, ac:'var(--red)',  d:0},
+    {n: CLUSTERS.length,       l:'Clusters',        s:'vulnerability types',                                   ac:'var(--amb)', d:.08},
+    {n: critCount,             l:'Critical / High', s:'require immediate fix',                                 ac:'var(--pur)', d:.16},
+    {n: `${patchCount}/${FINDINGS.length}`, l:'Patches Validated', s:'by re-scan',                            ac:'var(--g)',   d:.24},
+  ].map(({n,l,s,ac,d})=>`
+    <div class="sc" style="--ac:${ac};animation-delay:${d}s">
+      <div class="sc-num">${n}</div>
+      <div class="sc-lbl">${l}</div>
+      <div class="sc-sub">${s}</div>
+    </div>`).join('');
+
+  // type bars
+  const typeCounts = {};
+  FINDINGS.forEach(f=>typeCounts[f.type]=(typeCounts[f.type]||0)+1);
+  const maxC = Math.max(...Object.values(typeCounts),1);
+  document.getElementById('ov-type-badge').textContent = Object.keys(typeCounts).length+' types';
+  document.getElementById('ov-type-bars').innerHTML = Object.entries(typeCounts)
+    .sort((a,b)=>b[1]-a[1]).map(([type,count])=>{
+      const c=TC[type]||'#10b981';
+      const cl=CLUSTERS.find(x=>x.type===type);
+      return `<div style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px">
+          <span style="color:${c};display:flex;align-items:center;gap:7px">
+            <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${c}"></span>
+            ${esc(type)}
+          </span>
+          <span style="color:var(--txd);font-family:var(--mono);font-size:10px">${count}${cl?` · avg risk ${cl.avg_risk?.toFixed(2)}`:''}</span>
+        </div>
+        <div class="bt"><div class="bf" style="--fc:${c}" data-w="${(count/maxC)*100}"></div></div>
+      </div>`}).join('');
+
+  // risk chart
+  const chartEl = document.getElementById('ov-risk-chart');
+  chartEl.innerHTML = '';
+  [...FINDINGS].sort((a,b)=>(b.final_risk||b.static_risk_score||0)-(a.final_risk||a.static_risk_score||0))
+    .forEach(f=>{
+      const sc = f.final_risk||f.static_risk_score||0;
+      const c  = TC[f.type]||'#10b981';
+      const d  = document.createElement('div');
+      d.className='rbi';
+      d.style.cssText=`height:${sc*100}%;background:${c};box-shadow:0 0 4px ${c}80`;
+      d.title=`${f.type}: ${sc.toFixed(3)}`;
+      d.onclick=()=>{ switchView('findings',document.querySelector('[data-view="findings"]')); setTimeout(()=>openDp(f),150) };
+      chartEl.appendChild(d);
+    });
+
+  document.getElementById('ov-legend').innerHTML = Object.entries(TC).map(([t,c])=>
+    `<span style="font-size:10px;color:var(--tx2);display:flex;align-items:center;gap:5px">
+      <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${c};flex-shrink:0"></span>
+      ${t}
+    </span>`
+  ).join('');
+
+  document.getElementById('ov-clusters').innerHTML = CLUSTERS.slice(0,5).map(cl=>{
+    const p=priority(cl.priority_score||0); const c=TC[cl.type]||'#10b981';
+    return `<div style="display:flex;align-items:center;gap:14px;padding:11px 16px;border-bottom:1px solid rgba(16,185,129,0.06)">
+      <span style="font-family:var(--mono);font-size:10px;color:var(--txf);width:20px">#${cl.rank}</span>
+      <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${c};box-shadow:0 0 8px ${c};flex-shrink:0"></span>
+      <span style="flex:1;font-size:12px;font-weight:500">${esc(cl.type)}</span>
+      <span style="color:var(--txd);font-size:11px">${cl.count} findings</span>
+      <span style="font-size:10px;border:1px solid ${p.c};color:${p.c};padding:2px 8px;border-radius:3px;white-space:nowrap">${p.l}</span>
+      <span style="font-family:var(--disp);font-size:12px;font-weight:700;color:${p.c};min-width:40px;text-align:right">${(cl.priority_score||0).toFixed(3)}</span>
+    </div>`}).join('') || '<div class="empty"><span class="empty-icon">◈</span>No clusters generated</div>';
+
+  setTimeout(()=>animBars(document.getElementById('view-overview')),100);
+}
+
+// ── FINDINGS ──────────────────────────────────────────────────────────
+function buildFindings(){
+  const types = ["ALL", ...Object.keys(TC).filter(t=>FINDINGS.some(f=>f.type===t))];
+  document.getElementById('fi-pills').innerHTML = types.map(t=>
+    `<button class="pill ${t==='ALL'?'on':''}" onclick="setFiFilter('${t}',this)">${t}</button>`
+  ).join('');
+  renderFindings();
+}
+
+function setFiFilter(t,btn){
+  FI_FILTER=t;
+  document.querySelectorAll('.pill').forEach(p=>p.classList.remove('on'));
+  btn.classList.add('on');
+  renderFindings();
+}
+
+function renderFindings(){
+  const sk = document.getElementById('fi-sort')?.value||'final_risk';
+  const list = FINDINGS
+    .filter(f=>FI_FILTER==='ALL'||f.type===FI_FILTER)
+    .sort((a,b)=>(b[sk]||b.static_risk_score||0)-(a[sk]||a.static_risk_score||0));
+
+  document.getElementById('fi-body').innerHTML = list.map((f,i)=>{
+    const sc=f.final_risk||f.static_risk_score||0;
+    const r=risk(sc); const c=TC[f.type]||'#10b981';
+    const snip=esc((f.code||'').slice(0,48)+(f.code?.length>48?'…':''));
+    return `<tr class="fr" style="animation:slidein .28s ease ${i*.02}s both" onclick="openDp(FINDINGS[${FINDINGS.indexOf(f)}])">
+      <td>
+        <span style="display:inline-flex;align-items:center;gap:7px">
+          <span style="width:7px;height:7px;border-radius:50%;background:${c};flex-shrink:0;display:inline-block"></span>
+          <span style="color:${c};font-size:11px;font-weight:500">${esc(f.type)}</span>
+        </span>
+      </td>
+      <td>
+        <span style="font-family:var(--mono);font-size:11px">
+          <span style="color:var(--tx2)">${esc(fname(f.file||''))}</span>
+          <span style="color:var(--txd)">:</span>
+          <span style="color:var(--g)">${f.line||''}</span>
+        </span>
+      </td>
+      <td style="color:var(--txd);font-family:var(--mono);font-size:10px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${snip}</td>
+      <td style="font-family:var(--disp);font-size:12px;font-weight:700;color:${r.c}">${sc.toFixed(3)}</td>
+      <td><span class="rb" style="color:${r.c};border-color:${r.c};background:${r.c}18">${r.l}</span></td>
+      <td style="color:var(--cyn);font-family:var(--mono);font-size:11px">${f.cwe||'—'}</td>
+      <td style="font-size:13px">${f.validated?'✅':'—'}</td>
+    </tr>`}).join('') || `<tr><td colspan="7"><div class="empty"><span class="empty-icon">◈</span>No findings match this filter</div></td></tr>`;
+}
+
+// ── DETAIL PANEL ──────────────────────────────────────────────────────
+function openDp(f){
+  if(!f) return;
+  SEL_FINDING=f;
+  const sc=f.final_risk||f.static_risk_score||0;
+  const r=risk(sc); const c=TC[f.type]||'#10b981';
+  const typeEl = document.getElementById('dp-type');
+  typeEl.textContent = f.type;
+  typeEl.style.cssText = `font-family:var(--disp);font-size:16px;font-weight:800;color:${c}`;
+  document.getElementById('dp-file').textContent = `${f.file||''} · line ${f.line||''}`;
+
+  const stat = f.static_risk_score||sc;
+  const llm  = f.llm_confidence!=null ? (f.llm_confidence*100).toFixed(0)+'%' : '—';
+
+  document.getElementById('dp-body').innerHTML = `
+    <div class="g3" style="margin-bottom:16px">
+      <div style="background:rgba(0,0,0,0.4);border:1px solid var(--bdr);border-radius:5px;padding:12px;text-align:center">
+        <div style="font-family:var(--disp);font-size:20px;font-weight:800;color:${r.c}">${sc.toFixed(3)}</div>
+        <div style="font-size:9px;color:var(--txd);margin-top:3px;font-family:var(--mono);letter-spacing:1px">FINAL RISK</div>
+      </div>
+      <div style="background:rgba(0,0,0,0.4);border:1px solid var(--bdr);border-radius:5px;padding:12px;text-align:center">
+        <div style="font-family:var(--disp);font-size:20px;font-weight:800;color:var(--tx)">${stat.toFixed(3)}</div>
+        <div style="font-size:9px;color:var(--txd);margin-top:3px;font-family:var(--mono);letter-spacing:1px">STATIC RISK</div>
+      </div>
+      <div style="background:rgba(0,0,0,0.4);border:1px solid var(--bdr);border-radius:5px;padding:12px;text-align:center">
+        <div style="font-family:var(--disp);font-size:20px;font-weight:800;color:var(--cyn)">${llm}</div>
+        <div style="font-size:9px;color:var(--txd);margin-top:3px;font-family:var(--mono);letter-spacing:1px">LLM CONF</div>
+      </div>
+    </div>
+
+    <div style="margin-bottom:16px">
+      <div class="sl">Vulnerable Code</div>
+      <div class="cb-blk" style="color:#fca5a5">${esc(f.code||'—')}</div>
+    </div>
+
+    ${f.explanation?`
+    <div style="margin-bottom:14px">
+      <div class="sl">Explanation</div>
+      <div class="info-block accent">${esc(f.explanation)}</div>
+    </div>`:''}
+
+    ${f.exploit?`
+    <div style="margin-bottom:14px">
+      <div class="sl">Exploit Scenario</div>
+      <div class="info-block warn">${esc(f.exploit)}</div>
+    </div>`:''}
+
+    ${f.patched_code?`
+    <div style="margin-bottom:14px">
+      <div class="sl">Patched Code</div>
+      <div class="cb-blk" style="color:#6ee7b7">${esc(f.patched_code)}</div>
+    </div>`:''}
+
+    <div class="g2" style="gap:8px">
+      <div style="background:rgba(0,0,0,0.3);border:1px solid var(--bdr);border-radius:5px;padding:11px">
+        <div style="font-family:var(--mono);font-size:9px;color:var(--txf);margin-bottom:4px;letter-spacing:1px">CWE REFERENCE</div>
+        <div style="color:var(--cyn);font-family:var(--mono);font-size:12px;font-weight:500">${f.cwe||'—'}</div>
+      </div>
+      <div style="background:rgba(0,0,0,0.3);border:1px solid var(--bdr);border-radius:5px;padding:11px">
+        <div style="font-family:var(--mono);font-size:9px;color:var(--txf);margin-bottom:4px;letter-spacing:1px">PATCH STATUS</div>
+        <div style="font-size:13px">${f.validated?'✅ Validated':'⚠️ Unvalidated'}</div>
+      </div>
+    </div>`;
+
+  document.getElementById('dp').classList.add('open');
+}
+
+function closeDp(){ document.getElementById('dp').classList.remove('open') }
+
+// ── CLUSTERS ──────────────────────────────────────────────────────────
+function buildClusters(){
+  document.getElementById('cl-list').innerHTML = CLUSTERS.map(cl=>{
+    const p=priority(cl.priority_score||0); const c=TC[cl.type]||'#10b981';
+    return `<div class="cc" id="cc-${cl.rank}">
+      <div class="cch" onclick="toggleCl(${cl.rank})">
+        <span style="font-family:var(--mono);font-size:10px;color:var(--txf);width:22px;flex-shrink:0">#${cl.rank}</span>
+        <span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${c};box-shadow:0 0 10px ${c};flex-shrink:0"></span>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600;color:var(--tx)">${esc(cl.type)}</div>
+          <div style="font-size:10px;color:var(--txd);margin-top:2px;font-family:var(--mono)">${cl.count} findings · ${(cl.affected_modules||[]).length} modules</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-family:var(--disp);font-size:14px;font-weight:800;color:${p.c}">${(cl.priority_score||0).toFixed(3)}</div>
+          <div style="font-size:9px;border:1px solid ${p.c};color:${p.c};padding:2px 7px;margin-top:4px;border-radius:3px;display:inline-block">${p.l}</div>
+        </div>
+        <span style="color:var(--txd);font-size:11px;margin-left:8px">▾</span>
+      </div>
+      <div class="pb"><div class="pf" style="background:${p.c};box-shadow:0 0 6px ${p.c}80" data-w="${(cl.priority_score||0)*100}"></div></div>
+      <div class="ccb">
+        <div class="g3" style="gap:8px;margin-bottom:14px">
+          <div style="background:rgba(0,0,0,0.4);border:1px solid var(--bdr);border-radius:5px;padding:12px;text-align:center">
+            <div style="font-family:var(--disp);font-weight:800;font-size:16px;color:${c}">${(cl.avg_risk||0).toFixed(3)}</div>
+            <div style="font-size:9px;color:var(--txd);margin-top:3px;font-family:var(--mono)">AVG RISK</div>
+          </div>
+          <div style="background:rgba(0,0,0,0.4);border:1px solid var(--bdr);border-radius:5px;padding:12px;text-align:center">
+            <div style="font-family:var(--disp);font-weight:800;font-size:16px;color:var(--tx)">${cl.count}</div>
+            <div style="font-size:9px;color:var(--txd);margin-top:3px;font-family:var(--mono)">FINDINGS</div>
+          </div>
+          <div style="background:rgba(0,0,0,0.4);border:1px solid var(--bdr);border-radius:5px;padding:12px;text-align:center">
+            <div style="font-family:var(--disp);font-weight:800;font-size:16px;color:var(--amb)">${cl.estimated_effort||'—'}</div>
+            <div style="font-size:9px;color:var(--txd);margin-top:3px;font-family:var(--mono)">EFFORT</div>
+          </div>
+        </div>
+
+        ${cl.why_critical?`
+        <div class="info-block accent" style="margin-bottom:8px">
+          <div style="font-size:9px;color:var(--txd);margin-bottom:5px;font-family:var(--mono);letter-spacing:1px;text-transform:uppercase">Why Critical</div>
+          ${esc(cl.why_critical)}
+        </div>
+        <div class="info-block warn" style="margin-bottom:8px">
+          <div style="font-size:9px;color:var(--txd);margin-bottom:5px;font-family:var(--mono);letter-spacing:1px;text-transform:uppercase">Business Impact</div>
+          ${esc(cl.business_impact||'—')}
+        </div>
+        <div class="info-block ok" style="margin-bottom:14px">
+          <div style="font-size:9px;color:var(--txd);margin-bottom:5px;font-family:var(--mono);letter-spacing:1px;text-transform:uppercase">Fix Order</div>
+          ${esc(cl.fix_order||'—')}
+        </div>`:''}
+
+        <div style="font-family:var(--mono);font-size:9px;color:var(--txf);letter-spacing:2px;text-transform:uppercase;margin-bottom:7px">Affected Modules</div>
+        <div>${(cl.affected_modules||[]).map(m=>`<span class="tag">${esc(m)}</span>`).join('')||'<span style="color:var(--txf)">—</span>'}</div>
+      </div>
+    </div>`}).join('') || '<div class="empty"><span class="empty-icon">◈</span>No clusters generated</div>';
+}
+
+function toggleCl(rank){
+  const el=document.getElementById('cc-'+rank);
+  el.classList.toggle('exp');
+  animBars(el);
+}
+
+// ── EVALUATION ────────────────────────────────────────────────────────
+function buildEvaluation(){
+  const m=METRICS;
+  const total=m.total||FINDINGS.length||1;
+  const validated=m.validated??FINDINGS.filter(f=>f.validated).length;
+  const patchRate=((validated/total)*100).toFixed(1);
+  const avgRisk=m.avg_final_risk||(FINDINGS.reduce((s,f)=>s+(f.final_risk||f.static_risk_score||0),0)/total).toFixed(3);
+  const avgLlm=m.avg_llm_conf!=null?(m.avg_llm_conf*100).toFixed(1)+'%':'—';
+  const withLlm=FINDINGS.some(f=>f.llm_confidence!=null);
+
+  const typeCounts={};
+  FINDINGS.forEach(f=>typeCounts[f.type]=(typeCounts[f.type]||0)+1);
+  const maxC=Math.max(...Object.values(typeCounts),1);
+
+  document.getElementById('ev-content').innerHTML = `
+    <div class="g4" style="margin-bottom:16px">
+      <div class="sc" style="--ac:var(--g)">
+        <div class="sc-num">${total}</div>
+        <div class="sc-lbl">Total Findings</div>
+      </div>
+      <div class="sc" style="--ac:var(--amb)">
+        <div class="sc-num">${patchRate}%</div>
+        <div class="sc-lbl">Patch Rate</div>
+        <div class="sc-sub">${validated}/${total} validated</div>
+      </div>
+      <div class="sc" style="--ac:var(--cyn)">
+        <div class="sc-num">${avgRisk}</div>
+        <div class="sc-lbl">Avg Risk Score</div>
+      </div>
+      <div class="sc" style="--ac:var(--pur)">
+        <div class="sc-num">${withLlm?avgLlm:'N/A'}</div>
+        <div class="sc-lbl">Avg LLM Confidence</div>
+        <div class="sc-sub">${withLlm?'hybrid mode':'static mode'}</div>
+      </div>
+    </div>
+
+    <div class="g2" style="margin-bottom:14px">
+      <div class="panel">
+        <div class="ph">Severity Breakdown</div>
+        <div style="padding:16px">
+          ${(['Critical','High','Medium','Low']).map(lbl=>{
+            const colors={Critical:'var(--red)',High:'var(--amb)',Medium:'#eab308',Low:'var(--g)'};
+            const thresholds={Critical:.8,High:.6,Medium:.4,Low:0};
+            const maxT={Critical:1,High:.8,Medium:.6,Low:.4};
+            const cnt=FINDINGS.filter(f=>{const s=f.final_risk||f.static_risk_score||0;return s>=thresholds[lbl]&&s<maxT[lbl]}).length;
+            const c=colors[lbl];
+            return `<div style="margin-bottom:12px">
+              <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px">
+                <span style="color:${c};font-weight:500">${lbl}</span>
+                <span style="color:var(--txd);font-family:var(--mono);font-size:10px">${cnt} findings</span>
+              </div>
+              <div class="bt"><div class="bf" style="--fc:${c}" data-w="${(cnt/Math.max(total,1))*100}"></div></div>
+            </div>`}).join('')}
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="ph">Type Distribution</div>
+        <div style="padding:16px">
+          ${Object.entries(typeCounts).sort((a,b)=>b[1]-a[1]).map(([t,n])=>{
+            const c=TC[t]||'#10b981';
+            return `<div style="margin-bottom:12px">
+              <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px">
+                <span style="color:${c};display:flex;align-items:center;gap:6px">
+                  <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${c}"></span>${esc(t)}
+                </span>
+                <span style="color:var(--txd);font-family:var(--mono);font-size:10px">${n}</span>
+              </div>
+              <div class="bt"><div class="bf" style="--fc:${c}" data-w="${(n/maxC)*100}"></div></div>
+            </div>`}).join('')}
+        </div>
+      </div>
+    </div>
+
+    ${withLlm?`<div class="panel">
+      <div class="ph">Static vs Hybrid Delta</div>
+      <div class="ev-table" style="padding:0">
+        <table class="tbl">
+          <thead><tr><th>Type</th><th>File</th><th>Static</th><th>LLM Conf</th><th>Final</th><th>Delta</th></tr></thead>
+          <tbody>
+            ${[...FINDINGS].sort((a,b)=>Math.abs((b.final_risk||0)-(b.static_risk_score||0))-Math.abs((a.final_risk||0)-(a.static_risk_score||0)))
+              .slice(0,12).map(f=>{
+                const delta=((f.final_risk||0)-(f.static_risk_score||0)).toFixed(4);
+                const dc=parseFloat(delta)>=0?'var(--g)':'var(--red)';
+                return `<tr>
+                  <td style="color:${TC[f.type]||'#10b981'};font-size:11px;font-weight:500">${esc(f.type)}</td>
+                  <td style="color:var(--txd);font-family:var(--mono);font-size:10px">${esc(fname(f.file||''))}</td>
+                  <td style="font-family:var(--mono);font-size:11px">${(f.static_risk_score||0).toFixed(3)}</td>
+                  <td style="color:var(--cyn);font-family:var(--mono);font-size:11px">${f.llm_confidence!=null?(f.llm_confidence*100).toFixed(0)+'%':'—'}</td>
+                  <td style="font-family:var(--disp);font-weight:700;font-size:11px;color:${risk(f.final_risk||0).c}">${(f.final_risk||0).toFixed(3)}</td>
+                  <td style="font-family:var(--mono);font-size:11px;color:${dc};font-weight:600">${parseFloat(delta)>=0?'+':''}${delta}</td>
+                </tr>`}).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>`:''}`;
+
+  setTimeout(()=>animBars(document.getElementById('view-evaluation')),100);
+}
+
+// ── PDF EXPORT ────────────────────────────────────────────────────────
+function showToast(msg, icon='📄', duration=3000){
+  const t = document.getElementById('pdf-toast');
+  document.getElementById('pdf-toast-msg').textContent = msg;
+  t.querySelector('.t-icon').textContent = icon;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), duration);
+}
+
+function riskLabel(s){ if(s>=.8)return'Critical'; if(s>=.6)return'High'; if(s>=.4)return'Medium'; return'Low'; }
+function priorityLabel(s){ if(s>=.75)return'P0 · Immediate'; if(s>=.6)return'P1 · High'; if(s>=.45)return'P2 · Medium'; return'P3 · Low'; }
+
+function exportPDF(){
+  if(!FINDINGS.length){ showToast('No scan data to export.','⚠️',2500); return; }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+
+  const W = doc.internal.pageSize.getWidth();
+  const H = doc.internal.pageSize.getHeight();
+  const M = 16; // margin
+  const CW = W - M*2;
+  let y = 0;
+
+  // ── Colour palette (RGB) ──────────────────────────────────────────
+  const DARK   = [8,13,15];
+  const DARK2  = [13,20,23];
+  const GREEN  = [16,185,129];
+  const AMBER  = [245,158,11];
+  const RED    = [239,68,68];
+  const CYAN   = [6,182,212];
+  const PURPLE = [167,139,250];
+  const TX     = [226,237,233];
+  const TX2    = [168,196,187];
+  const TXD    = [90,128,112];
+  const WHITE  = [255,255,255];
+
+  const typeColors = {
+    'Command Injection':        RED,
+    'SQL Injection':            [249,115,22],
+    'SSRF':                     AMBER,
+    'Path Traversal':           [132,204,22],
+    'Insecure Deserialization': PURPLE,
+    'Hardcoded Credentials':    GREEN,
+    'Weak Cryptography':        CYAN,
+    'Debug Mode':               [100,116,139],
+  };
+
+  function riskColor(s){ if(s>=.8)return RED; if(s>=.6)return[249,115,22]; if(s>=.4)return AMBER; return GREEN; }
+
+  // ── Page helpers ──────────────────────────────────────────────────
+  function checkPage(needed=10){
+    if(y + needed > H - 12){ addFooter(); doc.addPage(); addHeader(); y = 36; }
+  }
+
+  function addHeader(){
+    doc.setFillColor(...DARK);
+    doc.rect(0,0,W,20,'F');
+    doc.setFillColor(...GREEN);
+    doc.rect(0,18,W,1,'F');
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(9);
+    doc.setTextColor(...GREEN);
+    doc.text('SCIE // SECURE CODE INTELLIGENCE ENGINE', M, 12);
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(8);
+    doc.setTextColor(...TXD);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, W-M, 12, {align:'right'});
+  }
+
+  function addFooter(){
+    const pg = doc.internal.getCurrentPageInfo().pageNumber;
+    doc.setFillColor(...DARK2);
+    doc.rect(0,H-10,W,10,'F');
+    doc.setFontSize(7);
+    doc.setFont('helvetica','normal');
+    doc.setTextColor(...TXD);
+    doc.text('SCIE Security Report — Confidential', M, H-4);
+    doc.text(`Page ${pg}`, W-M, H-4, {align:'right'});
+  }
+
+  function sectionTitle(title, iconChar=''){
+    checkPage(16);
+    doc.setFillColor(...DARK2);
+    doc.roundedRect(M, y, CW, 10, 1.5, 1.5, 'F');
+    doc.setDrawColor(...GREEN);
+    doc.setLineWidth(0.4);
+    doc.line(M, y+10, M+CW, y+10);
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(9);
+    doc.setTextColor(...GREEN);
+    doc.text((iconChar ? iconChar+' ' : '') + title.toUpperCase(), M+5, y+6.5);
+    y += 14;
+  }
+
+  function statCard(x, cardY, w, h, num, label, sub, color){
+    doc.setFillColor(...DARK2);
+    doc.roundedRect(x, cardY, w, h, 2, 2, 'F');
+    doc.setFillColor(...color);
+    doc.rect(x, cardY+h-1.5, w, 1.5, 'F');
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(16);
+    doc.setTextColor(...color);
+    doc.text(String(num), x+w/2, cardY+h/2-1, {align:'center'});
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(7);
+    doc.setTextColor(...TX2);
+    doc.text(label.toUpperCase(), x+w/2, cardY+h/2+5, {align:'center'});
+    if(sub){
+      doc.setFontSize(6);
+      doc.setTextColor(...TXD);
+      doc.text(sub, x+w/2, cardY+h/2+9, {align:'center'});
+    }
+  }
+
+  function miniBar(x, barY, w, pct, color){
+    doc.setFillColor(30,45,40);
+    doc.roundedRect(x, barY, w, 2.5, 0.5, 0.5, 'F');
+    if(pct>0){
+      doc.setFillColor(...color);
+      doc.roundedRect(x, barY, Math.max(w*pct/100, 1), 2.5, 0.5, 0.5, 'F');
+    }
+  }
+
+  function labelChip(x, chipY, text, color, bgOpacity=0.15){
+    const tw = doc.getTextWidth(text);
+    const pw = tw + 6;
+    const ph = 5;
+    doc.setFillColor(color[0], color[1], color[2]);
+    doc.roundedRect(x, chipY-3.5, pw, ph, 1, 1, 'F');
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(6.5);
+    doc.setTextColor(...DARK);
+    doc.text(text, x+3, chipY, {baseline:'middle'});
+    return pw + 3;
+  }
+
+  // ══════════════════════════════════════════════════════════════════
+  // PAGE 1 — COVER
+  // ══════════════════════════════════════════════════════════════════
+  doc.setFillColor(...DARK);
+  doc.rect(0,0,W,H,'F');
+
+  // green accent bar top
+  doc.setFillColor(...GREEN);
+  doc.rect(0,0,4,H,'F');
+
+  // subtle grid lines
+  doc.setDrawColor(16,185,129,0.08);
+  doc.setLineWidth(0.1);
+  for(let i=0;i<W;i+=8) doc.line(i,0,i,H);
+  for(let j=0;j<H;j+=8) doc.line(0,j,W,j);
+
+  // Title block
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(28);
+  doc.setTextColor(...GREEN);
+  doc.text('SCIE', M+8, 65);
+
+  doc.setFont('helvetica','normal');
+  doc.setFontSize(11);
+  doc.setTextColor(...TX2);
+  doc.text('Secure Code Intelligence Engine', M+8, 76);
+
+  doc.setFillColor(...GREEN);
+  doc.rect(M+8, 80, 60, 0.8, 'F');
+
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(18);
+  doc.setTextColor(...TX);
+  doc.text('Security Analysis Report', M+8, 95);
+
+  // Metadata block
+  const metaY = 110;
+  const files = FINDINGS.length ? [...new Set(FINDINGS.map(f=>fname(f.file||'')))] : [];
+  const metaItems = [
+    ['Scan Mode',   SCAN_MODE === 'static' ? 'Static AST' : 'Full Pipeline (LLM)'],
+    ['Files Scanned', files.length ? files.join(', ').slice(0,55)+(files.join(', ').length>55?'…':'') : '—'],
+    ['Total Findings', String(FINDINGS.length)],
+    ['Generated', new Date().toLocaleString()],
+  ];
+  metaItems.forEach(([k,v], i)=>{
+    const my = metaY + i*9;
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(8);
+    doc.setTextColor(...TXD);
+    doc.text(k+':', M+8, my);
+    doc.setTextColor(...TX2);
+    doc.text(v, M+50, my);
+  });
+
+  // Summary stats on cover
+  const statY = 160;
+  const critCount  = FINDINGS.filter(f=>(f.final_risk||f.static_risk_score||0)>=.8).length;
+  const highCount  = FINDINGS.filter(f=>{ const s=f.final_risk||f.static_risk_score||0; return s>=.6&&s<.8 }).length;
+  const patchCount = FINDINGS.filter(f=>f.validated).length;
+  const avgRisk    = FINDINGS.length ? (FINDINGS.reduce((s,f)=>s+(f.final_risk||f.static_risk_score||0),0)/FINDINGS.length) : 0;
+
+  const cw4 = (CW-6)/4;
+  statCard(M,       statY, cw4, 28, FINDINGS.length, 'Vulnerabilities', `${[...new Set(FINDINGS.map(f=>f.file))].length} files`, RED);
+  statCard(M+cw4+2, statY, cw4, 28, CLUSTERS.length, 'Clusters', 'vuln types', AMBER);
+  statCard(M+cw4*2+4, statY, cw4, 28, critCount, 'Critical', 'immediate action', RED);
+  statCard(M+cw4*3+6, statY, cw4, 28, avgRisk.toFixed(3), 'Avg Risk', 'across all findings', GREEN);
+
+  // cluster priority table on cover
+  if(CLUSTERS.length){
+    doc.setFontSize(8);
+    doc.setFont('helvetica','bold');
+    doc.setTextColor(...GREEN);
+    doc.text('CLUSTER PRIORITY SUMMARY', M+8, 205);
+    doc.setFillColor(...GREEN);
+    doc.rect(M+8,207,40,0.5,'F');
+
+    const clRows = CLUSTERS.slice(0,8).map(cl=>([
+      `#${cl.rank}`,
+      cl.type,
+      String(cl.count),
+      (cl.avg_risk||0).toFixed(3),
+      (cl.priority_score||0).toFixed(3),
+      priorityLabel(cl.priority_score||0),
+    ]));
+
+    doc.autoTable({
+      startY: 210,
+      head: [['#','Vulnerability Type','Count','Avg Risk','Priority Score','Label']],
+      body: clRows,
+      theme: 'plain',
+      styles: {
+        font:'helvetica', fontSize:8, textColor:TX2,
+        fillColor:DARK2, cellPadding:2.5, lineWidth:0.1, lineColor:[20,35,28]
+      },
+      headStyles: { textColor:TXD, fontSize:7, fontStyle:'bold', fillColor:DARK },
+      columnStyles: {
+        0: {cellWidth:8},
+        1: {cellWidth:55},
+        2: {cellWidth:15, halign:'center'},
+        3: {cellWidth:18, halign:'center'},
+        4: {cellWidth:22, halign:'center'},
+        5: {cellWidth:36},
+      },
+      margin:{left:M, right:M},
+    });
+  }
+
+  // footer on cover
+  doc.setFontSize(7);
+  doc.setFont('helvetica','normal');
+  doc.setTextColor(...TXD);
+  doc.text('CONFIDENTIAL — For internal security use only', W/2, H-8, {align:'center'});
+
+  // ══════════════════════════════════════════════════════════════════
+  // PAGE 2 — FINDINGS TABLE
+  // ══════════════════════════════════════════════════════════════════
+  doc.addPage();
+  addHeader();
+  y = 26;
+
+  sectionTitle('All Findings', '🔍');
+
+  const findRows = [...FINDINGS]
+    .sort((a,b)=>(b.final_risk||b.static_risk_score||0)-(a.final_risk||a.static_risk_score||0))
+    .map(f=>([
+      f.type||'—',
+      fname(f.file||'—'),
+      String(f.line||'—'),
+      (f.final_risk||f.static_risk_score||0).toFixed(3),
+      riskLabel(f.final_risk||f.static_risk_score||0),
+      f.cwe||'—',
+      f.validated ? 'Yes' : 'No',
+    ]));
+
+  doc.autoTable({
+    startY: y,
+    head: [['Type','File','Line','Risk','Severity','CWE','Patched']],
+    body: findRows,
+    theme: 'plain',
+    styles: {
+      font:'helvetica', fontSize:7.5, textColor:TX2,
+      fillColor:DARK2, cellPadding:2.8, lineWidth:0.15, lineColor:[16,30,22]
+    },
+    headStyles: { textColor:TXD, fontSize:7, fontStyle:'bold', fillColor:DARK, cellPadding:3 },
+    alternateRowStyles: { fillColor:[10,16,18] },
+    columnStyles: {
+      0: {cellWidth:44},
+      1: {cellWidth:30},
+      2: {cellWidth:11, halign:'center'},
+      3: {cellWidth:16, halign:'center', fontStyle:'bold'},
+      4: {cellWidth:17},
+      5: {cellWidth:20},
+      6: {cellWidth:14, halign:'center'},
+    },
+    didParseCell(data){
+      if(data.section==='body'){
+        if(data.column.index===3){
+          const s=parseFloat(data.cell.text[0]||0);
+          data.cell.styles.textColor = riskColor(s);
+        }
+        if(data.column.index===6){
+          data.cell.styles.textColor = data.cell.text[0]==='Yes' ? GREEN : AMBER;
+        }
+      }
+    },
+    margin:{left:M, right:M},
+    didDrawPage(){ y = doc.lastAutoTable.finalY + 4; }
+  });
+
+  y = doc.lastAutoTable.finalY + 10;
+  addFooter();
+
+  // ══════════════════════════════════════════════════════════════════
+  // PAGE 3 — CLUSTER DETAILS
+  // ══════════════════════════════════════════════════════════════════
+  doc.addPage();
+  addHeader();
+  y = 26;
+
+  sectionTitle('Cluster Analysis', '📊');
+
+  CLUSTERS.forEach((cl, ci)=>{
+    const needed = cl.why_critical ? 52 : 30;
+    checkPage(needed);
+
+    const tc  = typeColors[cl.type]||GREEN;
+    const p   = priorityLabel(cl.priority_score||0);
+    const pc  = riskColor(cl.priority_score||0);
+    const boxH = cl.why_critical ? 50 : 28;
+
+    // Cluster card background
+    doc.setFillColor(...DARK2);
+    doc.roundedRect(M, y, CW, boxH, 2, 2, 'F');
+
+    // Left accent stripe
+    doc.setFillColor(...tc);
+    doc.roundedRect(M, y, 3, boxH, 1, 1, 'F');
+
+    // Rank badge
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(9);
+    doc.setTextColor(...TXD);
+    doc.text(`#${cl.rank}`, M+7, y+7);
+
+    // Type name
+    doc.setFontSize(10);
+    doc.setTextColor(...TX);
+    doc.text(cl.type, M+18, y+7);
+
+    // Stats row
+    const stats2 = [
+      ['Findings', String(cl.count)],
+      ['Avg Risk', (cl.avg_risk||0).toFixed(3)],
+      ['Priority', (cl.priority_score||0).toFixed(3)],
+      ['Effort', cl.estimated_effort||'—'],
+    ];
+    let sx = M+18;
+    stats2.forEach(([k,v])=>{
+      doc.setFont('helvetica','normal');
+      doc.setFontSize(7);
+      doc.setTextColor(...TXD);
+      doc.text(k, sx, y+14);
+      doc.setFont('helvetica','bold');
+      doc.setFontSize(8);
+      doc.setTextColor(...TX2);
+      doc.text(v, sx, y+20);
+      sx += 28;
+    });
+
+    // Priority label chip
+    labelChip(W-M-36, y+5, p.toUpperCase(), pc);
+
+    // Modules
+    if(cl.affected_modules?.length){
+      doc.setFont('helvetica','normal');
+      doc.setFontSize(6.5);
+      doc.setTextColor(...TXD);
+      doc.text('Modules: '+cl.affected_modules.join(', ').slice(0,70), M+18, y+26);
+    }
+
+    // Business context (if LLM ran)
+    if(cl.why_critical){
+      doc.setFont('helvetica','normal');
+      doc.setFontSize(7);
+      doc.setTextColor(...TX2);
+      const wLines = doc.splitTextToSize('Why Critical: '+cl.why_critical, CW-12);
+      doc.text(wLines.slice(0,2), M+6, y+33);
+      if(cl.fix_order){
+        const fLines = doc.splitTextToSize('Fix: '+cl.fix_order, CW-12);
+        doc.text(fLines.slice(0,2), M+6, y+42);
+      }
+    }
+
+    y += boxH + 5;
+  });
+
+  addFooter();
+
+  // ══════════════════════════════════════════════════════════════════
+  // PAGE 4 — FINDING DETAILS (for findings with LLM data)
+  // ══════════════════════════════════════════════════════════════════
+  const richFindings = FINDINGS.filter(f=>f.explanation||f.exploit||f.patched_code);
+  if(richFindings.length){
+    doc.addPage();
+    addHeader();
+    y = 26;
+    sectionTitle('Detailed Finding Analysis', '🧠');
+
+    richFindings.slice(0,20).forEach(f=>{
+      const sc  = f.final_risk||f.static_risk_score||0;
+      const rc  = riskColor(sc);
+      const tc  = typeColors[f.type]||GREEN;
+
+      const lines = [];
+      if(f.explanation) lines.push(...doc.splitTextToSize(f.explanation, CW-10).slice(0,3));
+      if(f.exploit)     lines.push(...doc.splitTextToSize('⚠ '+f.exploit, CW-10).slice(0,2));
+      const boxH = 18 + lines.length*4 + (f.patched_code?10:0);
+
+      checkPage(boxH+6);
+
+      doc.setFillColor(...DARK2);
+      doc.roundedRect(M, y, CW, boxH, 2, 2, 'F');
+      doc.setFillColor(...tc);
+      doc.rect(M, y, 3, boxH, 'F');
+
+      // Header row
+      doc.setFont('helvetica','bold');
+      doc.setFontSize(8.5);
+      doc.setTextColor(...tc);
+      doc.text(f.type, M+7, y+6);
+
+      doc.setFont('helvetica','normal');
+      doc.setFontSize(7);
+      doc.setTextColor(...TXD);
+      doc.text(`${fname(f.file||'')} : line ${f.line||''}`, M+7, y+12);
+
+      // Risk score badge
+      doc.setFont('helvetica','bold');
+      doc.setFontSize(9);
+      doc.setTextColor(...rc);
+      doc.text(sc.toFixed(3), W-M-5, y+7, {align:'right'});
+      doc.setFontSize(6.5);
+      doc.text(riskLabel(sc).toUpperCase(), W-M-5, y+13, {align:'right'});
+
+      // CWE
+      if(f.cwe){
+        doc.setTextColor(...CYAN);
+        doc.setFont('helvetica','normal');
+        doc.setFontSize(7);
+        doc.text(f.cwe, W-M-32, y+7);
+      }
+
+      // Code snippet
+      if(f.code){
+        doc.setFont('courier','normal');
+        doc.setFontSize(6.5);
+        doc.setTextColor(252,165,165);
+        const codeLines = doc.splitTextToSize(f.code.slice(0,120), CW-12);
+        doc.text(codeLines.slice(0,2), M+6, y+18);
+      }
+
+      // Text content
+      let ty = y + (f.code ? 24 : 16);
+      doc.setFont('helvetica','normal');
+      doc.setFontSize(7);
+      if(f.explanation){
+        doc.setTextColor(...TX2);
+        const eLines = doc.splitTextToSize(f.explanation, CW-10);
+        doc.text(eLines.slice(0,3), M+6, ty);
+        ty += eLines.slice(0,3).length * 4;
+      }
+      if(f.exploit){
+        doc.setTextColor(252,165,165);
+        const xLines = doc.splitTextToSize('Exploit: '+f.exploit, CW-10);
+        doc.text(xLines.slice(0,2), M+6, ty);
+        ty += xLines.slice(0,2).length * 4;
+      }
+      if(f.patched_code){
+        doc.setTextColor(...GREEN);
+        doc.setFont('courier','normal');
+        doc.text('Fix: '+f.patched_code.slice(0,90), M+6, ty+2);
+      }
+
+      y += boxH + 5;
+    });
+
+    addFooter();
+  }
+
+  // ══════════════════════════════════════════════════════════════════
+  // PAGE N — METRICS SUMMARY
+  // ══════════════════════════════════════════════════════════════════
+  doc.addPage();
+  addHeader();
+  y = 26;
+
+  sectionTitle('Metrics & Risk Distribution', '📈');
+
+  // Severity breakdown bars
+  const sevData = [
+    {l:'Critical', min:.8,  max:1,  c:RED},
+    {l:'High',     min:.6,  max:.8, c:[249,115,22]},
+    {l:'Medium',   min:.4,  max:.6, c:AMBER},
+    {l:'Low',      min:0,   max:.4, c:GREEN},
+  ];
+
+  checkPage(60);
+  const colW = (CW-10)/2;
+
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(8);
+  doc.setTextColor(...TXD);
+  doc.text('SEVERITY BREAKDOWN', M, y+4);
+  y += 8;
+
+  sevData.forEach(({l,min,max,c})=>{
+    const cnt = FINDINGS.filter(f=>{const s=f.final_risk||f.static_risk_score||0;return s>=min&&s<max}).length;
+    const pct = FINDINGS.length ? (cnt/FINDINGS.length)*100 : 0;
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(8);
+    doc.setTextColor(...c);
+    doc.text(l, M, y+4);
+    doc.setTextColor(...TXD);
+    doc.text(String(cnt), M+colW, y+4, {align:'right'});
+    miniBar(M, y+6, colW, pct, c);
+    y += 12;
+  });
+
+  y += 6;
+
+  // Type distribution
+  checkPage(50);
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(8);
+  doc.setTextColor(...TXD);
+  doc.text('TYPE DISTRIBUTION', M, y+4);
+  y += 8;
+
+  const typeCounts2 = {};
+  FINDINGS.forEach(f=>typeCounts2[f.type]=(typeCounts2[f.type]||0)+1);
+  const maxC2 = Math.max(...Object.values(typeCounts2),1);
+
+  Object.entries(typeCounts2).sort((a,b)=>b[1]-a[1]).forEach(([t,n])=>{
+    checkPage(12);
+    const c = typeColors[t]||GREEN;
+    const pct = (n/maxC2)*100;
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(7.5);
+    doc.setTextColor(...c);
+    doc.text(t, M, y+4);
+    doc.setTextColor(...TXD);
+    doc.text(String(n), M+colW, y+4, {align:'right'});
+    miniBar(M, y+6, colW, pct, c);
+    y += 12;
+  });
+
+  // Static vs Hybrid delta table if LLM was used
+  const withLlm = FINDINGS.some(f=>f.llm_confidence!=null);
+  if(withLlm){
+    y += 8;
+    checkPage(20);
+    sectionTitle('Static vs Hybrid Scoring Delta', '⚖');
+
+    const deltaRows = [...FINDINGS]
+      .sort((a,b)=>Math.abs((b.final_risk||0)-(b.static_risk_score||0))-Math.abs((a.final_risk||0)-(a.static_risk_score||0)))
+      .slice(0,15)
+      .map(f=>{
+        const delta = ((f.final_risk||0)-(f.static_risk_score||0));
+        return [
+          f.type,
+          fname(f.file||''),
+          (f.static_risk_score||0).toFixed(3),
+          f.llm_confidence!=null ? (f.llm_confidence*100).toFixed(0)+'%' : '—',
+          (f.final_risk||0).toFixed(3),
+          (delta>=0?'+':'')+delta.toFixed(4),
+        ];
+      });
+
+    doc.autoTable({
+      startY: y,
+      head: [['Type','File','Static','LLM Conf','Final','Δ Delta']],
+      body: deltaRows,
+      theme: 'plain',
+      styles:{font:'helvetica',fontSize:7.5,textColor:TX2,fillColor:DARK2,cellPadding:2.5,lineWidth:0.15,lineColor:[16,30,22]},
+      headStyles:{textColor:TXD,fontSize:7,fontStyle:'bold',fillColor:DARK,cellPadding:3},
+      alternateRowStyles:{fillColor:[10,16,18]},
+      columnStyles:{
+        0:{cellWidth:44},1:{cellWidth:30},2:{cellWidth:16,halign:'center'},
+        3:{cellWidth:16,halign:'center'},4:{cellWidth:16,halign:'center',fontStyle:'bold'},
+        5:{cellWidth:18,halign:'center'},
+      },
+      didParseCell(data){
+        if(data.section==='body'&&data.column.index===5){
+          const v=parseFloat(data.cell.text[0]||0);
+          data.cell.styles.textColor = v>=0 ? GREEN : RED;
+          data.cell.styles.fontStyle = 'bold';
+        }
+        if(data.section==='body'&&data.column.index===4){
+          const s=parseFloat(data.cell.text[0]||0);
+          data.cell.styles.textColor = riskColor(s);
+        }
+      },
+      margin:{left:M, right:M},
+    });
+  }
+
+  addFooter();
+
+  // ── Save ──────────────────────────────────────────────────────────
+  const ts = new Date().toISOString().slice(0,19).replace(/[T:]/g,'-');
+  doc.save(`scie-report-${ts}.pdf`);
+  showToast('Report downloaded successfully!', '✅', 3000);
+}
+
+// ── KEYBOARD ──────────────────────────────────────────────────────────
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeDp() });
+</script>
+</body>
+</html>

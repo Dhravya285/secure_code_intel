@@ -1,6 +1,6 @@
 # AI-Powered Secure Code Intelligence & Prioritization Engine
 
-A hybrid static analysis + ML scoring + LLM reasoning system that detects, scores, and prioritizes security vulnerabilities in Python codebases.
+A hybrid static analysis + ML scoring + LLM reasoning system that detects, scores, and prioritizes security vulnerabilities in Python codebases — with a full web UI and one-click PDF report export.
 
 **F1 Score: 0.92 | Precision: 0.94 | Recall: 0.91 | 8 Vulnerability Types | 53 Findings Detected**
 
@@ -74,7 +74,7 @@ Source Code (.py files)
 └─────────────────────┘
          │
          ▼
-   Ranked Security Report (6 JSON output files)
+   Ranked Security Report (6 JSON output files + PDF export)
 ```
 
 ---
@@ -100,16 +100,20 @@ Source Code (.py files)
 secure-code-intel/
 │
 ├── config.py                    # Central config: weights, severities, CWE map
-├── main.py                      # Full pipeline runner
+├── main.py                      # Full pipeline runner (CLI)
+├── app.py                       # Flask web backend (REST API + static serving)
 ├── requirements.txt
+│
+├── ui/
+│   └── index.html               # Web UI — drag & drop, scan, PDF export
 │
 ├── scanner/
 │   ├── ast_scanner.py           # 8 AST-based vulnerability detectors
 │   └── feature_engineer.py      # Feature extraction + signal scoring
 │
 ├── scoring/
-│   ├── risk_scorer.py           # Static risk scoring (Day 1)
-│   └── hybrid_scorer.py         # Ensemble static + LLM scoring (Day 2)
+│   ├── risk_scorer.py           # Static risk scoring
+│   └── hybrid_scorer.py         # Ensemble static + LLM scoring
 │
 ├── llm/
 │   ├── llm_client.py            # Ollama client with 4-strategy JSON parsing
@@ -157,7 +161,7 @@ secure-code-intel/
 
 ### Prerequisites
 - Python 3.10+
-- [Ollama](https://ollama.com) installed and running
+- [Ollama](https://ollama.com) installed and running (only required for Full Pipeline mode)
 
 ### Install
 
@@ -167,19 +171,28 @@ git clone https://github.com/yourusername/secure-code-intel.git
 cd secure-code-intel
 
 # Install Python dependencies
-pip install ollama
+pip install flask flask-cors ollama
 
-# Pull the LLM model (requires ~2GB disk space)
+# Pull the LLM model — required only for Full Pipeline mode (~2 GB)
 ollama pull llama3.2:3b
 
-# Start Ollama server (keep running in separate terminal)
+# Start Ollama server in a separate terminal (Full Pipeline only)
 ollama serve
 ```
 
-### Run
+### Run — Web UI (recommended)
 
 ```bash
-# Run full pipeline
+python app.py
+# Open http://localhost:5000
+```
+
+Upload `.py` files via drag & drop, choose a scan mode, and hit **Run Scan**.
+
+### Run — CLI
+
+```bash
+# Full pipeline on default data/vulnerable/ directory
 python main.py
 
 # Scan a specific directory
@@ -188,23 +201,62 @@ python main.py --target path/to/your/code
 
 ---
 
+## Web UI
+
+The web interface is served by `app.py` and lives in `ui/index.html`. No build step required.
+
+### Scan Modes
+
+| Mode | Description | Speed |
+|------|-------------|-------|
+| **Static Scan** | AST-based detection only, no LLM | < 3 seconds |
+| **Full Pipeline** | Static + LLM analysis, patch generation, business explanations | 1–3 minutes |
+
+### Views
+
+**Upload** — drag & drop `.py` files, select scan mode, start scan.
+
+**Overview** — stat cards (total findings, clusters, critical count, avg risk), findings-by-type bar chart, risk distribution histogram, and top priority clusters.
+
+**Findings** — filterable, sortable table of all vulnerabilities. Click any row to open a detail panel showing: risk scores, vulnerable code, LLM explanation, exploit scenario, patched code, CWE reference, and patch validation status.
+
+**Clusters** — expandable cluster cards ranked by priority score, each showing avg risk, finding count, estimated effort, affected modules, and LLM-generated business impact and fix guidance.
+
+**Evaluation** — severity breakdown, type distribution, patch rate, and (in Full Pipeline mode) a static vs hybrid delta table showing how much the LLM adjusted each score.
+
+### PDF Export
+
+After any scan completes, the **⬇ Export PDF** button in the header becomes active. Clicking it generates and downloads a multi-page PDF report entirely in the browser — no server call required.
+
+The PDF contains:
+
+- **Cover page** — project branding, scan metadata, summary stat cards, cluster priority table
+- **All Findings** — full sortable table with type, file, line, risk score, severity, CWE, and patch status
+- **Cluster Analysis** — per-cluster cards with risk metrics, effort estimate, affected modules, and LLM business context
+- **Detailed Finding Analysis** — per-finding deep-dive with code snippets, explanations, exploit scenarios, and patches (Full Pipeline only)
+- **Metrics & Risk Distribution** — severity breakdown bars, type distribution, and static vs hybrid scoring delta
+
+The filename is auto-stamped: `scie-report-YYYY-MM-DD-HH-MM-SS.pdf`.
+
+---
+
 ## Scoring Models
 
-### Static Risk Score (Day 1)
+### Static Risk Score
 ```
 Risk Score = 0.6 × base_severity + 0.4 × feature_signal
 ```
-- `base_severity` — domain knowledge score per vulnerability type (from config.py)
-- `feature_signal` — weighted sum of binary features extracted from AST
+- `base_severity` — domain knowledge score per vulnerability type (from `config.py`)
+- `feature_signal` — weighted sum of binary features extracted from the AST
 
-### Hybrid Risk Score (Day 2)
+### Hybrid Risk Score
 ```
 Final Risk = 0.6 × static_score + 0.4 × llm_confidence − score_penalty
 ```
 - `llm_confidence` — LLM's assessment of exploitability (0–1)
-- `score_penalty` — 0.15 for syntax error in patch, 0.10 if patch still vulnerable
+- `score_penalty` — 0.15 for a syntax error in the generated patch, 0.10 if the patch still contains the vulnerability
 
-### Cluster Priority Score (Day 3)
+### Cluster Priority Score
 ```
 Priority = 0.4 × avg_final_risk
          + 0.2 × normalized_frequency
@@ -243,19 +295,44 @@ Module weights: `auth/*` = 1.0, `admin/*` = 0.9, `db/*` = 0.8, `config/*` = 0.7,
 
 ---
 
+## API Reference
+
+`app.py` exposes two endpoints consumed by the UI.
+
+### `POST /api/scan`
+
+Upload files and start a scan job.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `files` | multipart | One or more `.py` files |
+| `mode` | string | `"static"` or `"full"` |
+
+Returns `{ "job_id": "<8-char id>" }`.
+
+### `GET /api/status/<job_id>`
+
+Poll scan progress. While running, returns `{ id, status, progress, step, log }`.
+When complete (`status: "done"`), also returns `findings`, `clusters`, and `metrics`.
+
+---
+
 ## Design Decisions
 
 **Why AST over regex?**
 AST parsing understands code structure — it knows `execute` is a method call on a `cursor` object, not just a word in a string. Regex matches text; AST matches semantics.
 
 **Why local LLM (Ollama)?**
-No API costs, no data leaving the machine, consistent availability. Works on 8GB RAM with `llama3.2:3b`.
+No API costs, no data leaving the machine, consistent availability. Works on 8 GB RAM with `llama3.2:3b`.
 
 **Why cluster-based prioritization over individual ranking?**
-51 individual findings is noise. 8 ranked clusters is actionable. A team can fix "all SQL Injection across auth modules" — they can't fix "vulnerability #23".
+53 individual findings is noise. 8 ranked clusters is actionable. A team can fix "all SQL Injection across auth modules" — they can't meaningfully fix "vulnerability #23".
 
 **Why patch validation?**
 LLMs sometimes generate syntactically invalid patches or patches that don't actually fix the vulnerability. The validation loop provides a feedback signal — bad patches reduce the final risk score.
+
+**Why client-side PDF generation?**
+Using `jsPDF` + `jsPDF-AutoTable` in the browser means no server-side PDF libraries, no temp files, no extra routes. The entire report is assembled from the already-loaded scan data and downloaded instantly.
 
 ---
 
@@ -286,19 +363,23 @@ def extract_new_vuln_features(finding):
 FEATURE_EXTRACTORS["New Vuln Type"] = extract_new_vuln_features
 ```
 
-Everything else — scoring, LLM, validation, clustering, evaluation — works automatically.
+Everything else — scoring, LLM, validation, clustering, PDF export, evaluation — works automatically.
 
 ---
 
 ## Tech Stack
 
-- **Python 3.10+** — core language
-- **ast** — built-in AST parser (no external dependency)
-- **Ollama** — local LLM inference
-- **llama3.2:3b** — lightweight LLM (runs on 8GB RAM)
-- **json** — structured output
+| Layer | Technology |
+|-------|------------|
+| Language | Python 3.10+ |
+| AST parsing | `ast` (built-in) |
+| Web backend | Flask + flask-cors |
+| LLM inference | Ollama (`llama3.2:3b`) |
+| UI fonts | JetBrains Mono, Syne, Inter (Google Fonts) |
+| PDF generation | jsPDF 2.5 + jsPDF-AutoTable 3.8 (client-side) |
+| Output format | JSON (6 files) + PDF |
 
-No ML frameworks. No heavy dependencies. Entirely runnable on a laptop.
+No ML frameworks. No heavy dependencies. Runs entirely on a laptop with 8 GB RAM.
 
 ---
 
@@ -312,3 +393,4 @@ No ML frameworks. No heavy dependencies. Entirely runnable on a laptop.
 | `outputs/cluster_report.json` | Ranked clusters with business explanations |
 | `outputs/evaluation_results.json` | Precision / Recall / F1 per file |
 | `outputs/comparison_report.json` | Static vs Hybrid delta analysis |
+| `scie-report-<timestamp>.pdf` | Downloaded via browser — full multi-page report |
