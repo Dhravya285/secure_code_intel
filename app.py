@@ -161,4 +161,4 @@ def status(jid):
 if __name__ == "__main__":
     os.makedirs("ui", exist_ok=True)
     print("\n  SCIE  →  http://localhost:5000\n")
-    app.run(debug=False, port=5000, threaded=True)
+    app.run(host="0.0.0.0", debug=False, port=5000, threaded=True)  # host="0.0.0.0" required for Docker

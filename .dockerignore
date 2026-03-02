@@ -1,0 +1,37 @@
+# .dockerignore
+# These files/folders are excluded from the Docker image
+# Keeps the image small and avoids copying unnecessary files
+
+# Git history
+.git
+.gitignore
+
+# Python cache files
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Virtual environments (we install packages fresh inside the container)
+venv/
+env/
+.env/
+.venv/
+
+# Output files (these are generated at runtime, not needed in the image)
+outputs/
+
+# Editor and OS files
+.vscode/
+.idea/
+*.DS_Store
+Thumbs.db
+
+# Docker files themselves (no need to copy these into the image)
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# README (optional — remove this line if you want it included)
+README.md

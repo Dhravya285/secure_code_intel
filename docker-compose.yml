@@ -1,0 +1,65 @@
+# docker-compose.yml
+# This file tells Docker to run two containers together:
+#   1. scie-app  → your Flask backend + web UI
+#   2. ollama    → the local LLM server (only needed for Full Pipeline mode)
+
+services:
+
+  # ── Service 1: Your Flask application ─────────────────────────────
+  scie-app:
+    # Build the image using the Dockerfile in this folder
+    build: .
+
+    # Map port 5000 on your machine → port 5000 inside the container
+    # After running, open http://localhost:5000 in your browser
+    ports:
+      - "5000:5000"
+
+    # Environment variable so Flask knows where Ollama is running
+    # "ollama" here refers to the service name below (Docker handles DNS)
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+
+    # Wait for Ollama to be healthy before starting the Flask app
+    depends_on:
+      - ollama
+
+    # Mount your local outputs/ folder into the container
+    # This means generated JSON reports are saved on your machine too
+    volumes:
+      - ./outputs:/app/outputs
+
+    # Restart the container if it crashes
+    restart: unless-stopped
+
+
+  # ── Service 2: Ollama LLM server ──────────────────────────────────
+  ollama:
+    # Official Ollama image from Docker Hub
+    image: ollama/ollama:latest
+
+    # Expose Ollama's API port
+    ports:
+      - "11434:11434"
+
+    # Persist the downloaded model (llama3.2:3b = ~2GB)
+    # Without this volume, the model re-downloads every time you restart
+    volumes:
+      - ollama-models:/root/.ollama
+
+    # Health check: Docker will wait until Ollama responds before
+    # starting the Flask app (prevents "connection refused" errors)
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+
+    restart: unless-stopped
+
+
+# ── Named volume for persisting the LLM model ─────────────────────────
+# Docker manages this — you don't need to create any folder manually
+volumes:
+  ollama-models:

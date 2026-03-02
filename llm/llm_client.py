@@ -6,12 +6,26 @@
 #   - JSON extraction (Llama sometimes adds extra text)
 #   - Retry on parse failure (once)
 #   - Fallback values if model fails completely
+#
+# Docker note:
+#   When running via docker compose, OLLAMA_HOST is set to
+#   http://ollama:11434 automatically via docker-compose.yml.
+#   When running locally, it defaults to http://localhost:11434.
 # ============================================================
 
 import json
+import os
 import re
 import ollama
 from config import LLM_MODEL
+
+
+# ── Ollama host: reads from environment, falls back to localhost ──────
+# This is the key change that makes it work inside Docker.
+OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
+
+# Create a custom Ollama client pointing to the correct host
+_client = ollama.Client(host=OLLAMA_HOST)
 
 
 def _extract_json(text: str) -> dict:
@@ -80,7 +94,7 @@ def call_llm(prompt: str, retries: int = 1) -> dict:
     """
     for attempt in range(retries + 1):
         try:
-            response = ollama.chat(
+            response = _client.chat(
                 model=LLM_MODEL,
                 messages=[{"role": "user", "content": prompt}],
                 options={
@@ -116,7 +130,7 @@ def call_llm_raw(prompt: str) -> str:
     Returns raw text response (used for debugging).
     """
     try:
-        response = ollama.chat(
+        response = _client.chat(
             model=LLM_MODEL,
             messages=[{"role": "user", "content": prompt}],
             options={"temperature": 0.1}

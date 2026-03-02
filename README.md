@@ -103,6 +103,10 @@ secure-code-intel/
 ├── main.py                      # Full pipeline runner (CLI)
 ├── app.py                       # Flask web backend (REST API + static serving)
 ├── requirements.txt
+├── Dockerfile                   # Container image for the Flask app
+├── docker-compose.yml           # Runs Flask + Ollama together
+├── .dockerignore                # Excludes unnecessary files from the image
+├── pull_model.sh                # One-time script to download llama3.2:3b
 │
 ├── ui/
 │   └── index.html               # Web UI — drag & drop, scan, PDF export
@@ -160,10 +164,53 @@ secure-code-intel/
 ## Setup & Installation
 
 ### Prerequisites
-- Python 3.10+
-- [Ollama](https://ollama.com) installed and running (only required for Full Pipeline mode)
+- Python 3.10+ (for local run)
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (for Docker run)
+- [Ollama](https://ollama.com) installed and running — only required for local Full Pipeline mode
 
-### Install
+---
+
+### Option 1 — Docker (recommended, one command)
+
+The easiest way to run the project. Docker handles Python, dependencies, and Ollama automatically.
+
+```bash
+# 1. Clone the repo
+git clone https://github.com/yourusername/secure-code-intel.git
+cd secure-code-intel
+
+# 2. Start Docker Desktop and wait for it to fully load
+
+# 3. Build and start both containers (Flask app + Ollama)
+docker compose up --build
+
+# 4. In a NEW terminal, pull the LLM model (first time only, ~2 GB)
+bash pull_model.sh
+# On Windows:
+docker compose exec ollama ollama pull llama3.2:3b
+
+# 5. Open http://localhost:5000
+```
+
+**Stopping:**
+```bash
+docker compose down
+```
+
+**Next time** (model is already saved, no re-download):
+```bash
+docker compose up
+```
+
+> **Note:** Make sure your `llm_client.py` reads the Ollama host from the environment:
+> ```python
+> import os
+> OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
+> ```
+
+---
+
+### Option 2 — Local (no Docker)
 
 ```bash
 # Clone the repo
@@ -334,6 +381,9 @@ LLMs sometimes generate syntactically invalid patches or patches that don't actu
 **Why client-side PDF generation?**
 Using `jsPDF` + `jsPDF-AutoTable` in the browser means no server-side PDF libraries, no temp files, no extra routes. The entire report is assembled from the already-loaded scan data and downloaded instantly.
 
+**Why Docker?**
+Packaging the Flask app and Ollama into Docker containers means anyone can run the full project with a single `docker compose up` — no manual Python setup, no separate Ollama install, no environment mismatches. The Ollama model is persisted in a named volume so it only downloads once.
+
 ---
 
 ## Extending the Scanner
@@ -377,6 +427,7 @@ Everything else — scoring, LLM, validation, clustering, PDF export, evaluation
 | LLM inference | Ollama (`llama3.2:3b`) |
 | UI fonts | JetBrains Mono, Syne, Inter (Google Fonts) |
 | PDF generation | jsPDF 2.5 + jsPDF-AutoTable 3.8 (client-side) |
+| Containerisation | Docker + Docker Compose |
 | Output format | JSON (6 files) + PDF |
 
 No ML frameworks. No heavy dependencies. Runs entirely on a laptop with 8 GB RAM.

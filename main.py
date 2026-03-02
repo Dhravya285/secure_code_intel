@@ -38,7 +38,7 @@ def run_pipeline(target_dir: str = "data/vulnerable"):
 
     print(f"\n{'='*60}")
     print(f"  AI-Powered Secure Code Intelligence Engine")
-    print(f"  FULL PIPELINE — Day 1 + 2 + 3")
+    
     print(f"{'='*60}")
 
     # Step 1: Scan
